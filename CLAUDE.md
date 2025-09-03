@@ -46,23 +46,47 @@ This is a Python-based CNC G-code sender application that provides visual cut pr
 python realWorldGcodeSender.py
 ```
 
+### Configuration Management
+```bash
+python configure.py  # Open configuration GUI
+```
+
 ### Testing Components
 ```bash
 python test.py  # Basic functionality tests
 ```
 
-## Important Configuration
+## Configuration System
 
-### Physical Setup Constants (in `realWorldGcodeSender.py`)
+The application now uses a centralized configuration system with JSON file persistence:
+
+### Configuration Files
+- `config.py`: Configuration data classes and management
+- `config_gui.py`: Tkinter-based configuration GUI
+- `configure.py`: Launcher script for configuration GUI
+- `config.json`: User configuration file (auto-created)
+
+### Configuration Categories
+- **Physical Setup**: ChArUco marker dimensions, bed size, reference positions
+- **Cutting Parameters**: Material thickness, cutter diameter, feed rates, depths
+- **Vision Settings**: Camera device, resolution, display settings
+- **Communication**: COM port, baud rate, auto-detection
+- **Probing Settings**: Touch plate dimensions, probe feed rates
+
+### Usage
+Run `python configure.py` to open the configuration GUI where you can:
+- Edit all configuration parameters
+- Load/save different configuration files
+- Reset to default values
+- Apply changes to the running application
+
+### Legacy Configuration (Deprecated)
+Physical Setup Constants (now managed via config system):
 - `boxWidth`: 0.745642857" - Width of ChArUco marker boxes
-- `materialThickness`: 0.471" - Default material thickness
+- `materialThickness`: 0.471" - Default material thickness  
 - `cutterDiameter`: 0.125" - Default cutter diameter
 - `bedSize`: Point3D(-35.0, -35.0, -3.75) - CNC bed dimensions
 - Marker reference positions defined in `rightBoxRef` and `leftBoxRef`
-
-### Serial Communication
-- Default baud rate: 115200
-- Uses automatic COM port detection via `serial.tools.list_ports`
 
 ## Key Features & Workflows
 

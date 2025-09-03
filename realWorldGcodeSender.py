@@ -34,41 +34,22 @@ import serial.tools.list_ports
 import threading
 import functools
 
+# Import configuration system
+from app_config import get_config
 
-global boxWidth 
-global rightBoxRef
-global leftBoxRef
-global bedSize
-global bedViewSizePixels
-global rightSlope
-global leftSlope
-global materialThickness
-global cutterDiameter
+# Load configuration
+config = get_config()
 
-materialThickness = 0.471
-cutterDiameter    = 0.125
-
-
-#right side, 2.3975" from bed, 2.38" near wall.  0.326 from end of bed
-#left side 3.2" from bed.  3.1375 near wall.  0.3145" from end of bed
-#5.2195" / 7 = 0.745643" per box
-
-boxWidth = 0.745642857 * 1.01
-bedSize = Point3D(-35.0, -35.0, -3.75)
-#These are distances from machine origin (0,0,0), right, back, upper corner.
-rightBoxRef = Point3D(4.0-.17, -34.0-0.2, bedSize.Z + 2.3975 - materialThickness)
-leftBoxRef = Point3D(-39.0-.17, -34.0-0.2, bedSize.Z + 3.2 - materialThickness)
-
-#This is the height of the bottom box from the bed at the far end (near Y 0)
-#as the reference squares may not be perfectly level to the bed 
-rightBoxFarHeight = 2.38 - materialThickness
-leftBoxFarHeight  = 3.1375 - materialThickness
-
-#There are 20 boxes, slope is divided by 20
-rightSlope = (rightBoxFarHeight - (rightBoxRef.Z - bedSize.Z)) / 20.0
-leftSlope = (leftBoxFarHeight - (leftBoxRef.Z - bedSize.Z)) / 20.0
-
-bedViewSizePixels = 1400
+# Extract configuration values for backward compatibility
+boxWidth = config.physical_setup.box_width
+bedSize = config.get_bed_size()
+rightBoxRef = config.get_right_box_ref()
+leftBoxRef = config.get_left_box_ref()
+rightSlope = config.get_right_slope()
+leftSlope = config.get_left_slope()
+materialThickness = config.cutting_parameters.material_thickness
+cutterDiameter = config.cutting_parameters.cutter_diameter
+bedViewSizePixels = config.vision_settings.bed_view_size_pixels
 
 #First ID is upper right, which is most positive Z and most positice Y
 # Z, Y
@@ -936,15 +917,14 @@ class GCodeSender:
         for p in ports:
             print(p.device)
 
-        self.gerbil.cnect("COM4", 115200)
+        self.gerbil.cnect(config.communication_settings.com_port, config.communication_settings.baud_rate)
         self.gerbil.poll_start()
         self.set_inches()
 
-        self.plateHeight = 0.472441 # 12mm
-        self.plateWidth  = 2.75591 # 70mm
-        global cutterDiameter
-        self.cutterRadius   = cutterDiameter / 2.0
-        self.distToKnotch = (0.984252**2 + 0.984252**2) ** 0.5 #25mm both directions to the knotch
+        self.plateHeight = config.probing_settings.plate_height
+        self.plateWidth  = config.probing_settings.plate_width
+        self.cutterRadius   = config.cutting_parameters.cutter_diameter / 2.0
+        self.distToKnotch = config.probing_settings.dist_to_notch
 
 
 
@@ -1011,14 +991,14 @@ class GCodeSender:
         #Move down medium speed to reference plate
         print("***************************************4")
         print("***************************************5")
-        self.probe(z = -2.75, feed = 5.9) # move down by 2.75" until probe hit
+        self.probe(z = -2.75, feed = config.probing_settings.probe_feed_rate_fast) # move down by 2.75" until probe hit
         print("***************************************6")
         self.set_cur_pos_as(z = plateHeight) # Set actual 0 to probed location
         print("***************************************7")
 
         #Move up, then slowly to reference plate
         self.work_offset_move(z = plateHeight + 0.1, feed=180) # Move just above reference plate
-        xyz = self.probe(z = plateHeight-0.05, feed = 1.5)
+        xyz = self.probe(z = plateHeight-0.05, feed = config.probing_settings.probe_feed_rate_slow)
         self.set_cur_pos_as(z = plateHeight) # Set actual 0 to probed location
         self.work_offset_move(z = plateHeight + 0.5, feed=180) # Move just above reference plate, clearing lip on reference plate
         # return z height of the probe
@@ -1040,13 +1020,13 @@ class GCodeSender:
             # Move up
             self.work_offset_move(z = plateHeight + 0.5, feed=100) # Move just above reference plate, clearing lip on reference plate
             #once medium speed, once slow speed
-            for feed, dist in zip([5.9, 1.5], [firstSafeDist, secSafeDist]):
+            for feed, dist in zip([config.probing_settings.probe_feed_rate_fast, config.probing_settings.probe_feed_rate_slow], [firstSafeDist, secSafeDist]):
                 # Move to side of touch plate
                 self.work_offset_move(x = math.cos(angle) * dist, y = math.sin(angle) * dist, feed=180)
                 # Move below touch plate
                 self.work_offset_move(z = plateHeight-0.1, feed=100)
                 # Probe to the touch plate
-                refPoint = self.probe(x = math.cos(angle) * probeToDist, y = math.sin(angle) * probeToDist, feed=5.9)
+                refPoint = self.probe(x = math.cos(angle) * probeToDist, y = math.sin(angle) * probeToDist, feed=config.probing_settings.probe_feed_rate_fast)
                 # set this as new side of touch plate
                 self.set_cur_pos_as(x = math.cos(angle) * (plateWidth * 0.5 + cutterRadius) , \
                                            y = math.sin(angle) * (plateWidth * 0.5 + cutterRadius))
@@ -1079,7 +1059,7 @@ class GCodeSender:
         #Probe down a quarter of touch plate first
         #once medium speed, once slow speed
         distAdjust = 0
-        for feed, dist in zip([5.9, 1.5], [firstSafeDist, firstSafeDist]):
+        for feed, dist in zip([config.probing_settings.probe_feed_rate_fast, config.probing_settings.probe_feed_rate_slow], [firstSafeDist, firstSafeDist]):
             self.work_offset_move(x = math.cos(angle) * (dist - distAdjust) + math.cos(angle - math.pi/2.0) * plateWidth * 0.25 , \
                                   y = math.sin(angle) * (dist - distAdjust) + math.sin(angle - math.pi/2.0) * plateWidth * 0.25, feed=400)
             # Move below touch plate
@@ -1095,7 +1075,7 @@ class GCodeSender:
         #Probe up a quarter of touch plate second
         #once medium speed, once slow speed
         distAdjust = 0
-        for feed, dist in zip([5.9, 1.5], [firstSafeDist, firstSafeDist]):
+        for feed, dist in zip([config.probing_settings.probe_feed_rate_fast, config.probing_settings.probe_feed_rate_slow], [firstSafeDist, firstSafeDist]):
             self.work_offset_move(x = math.cos(angle) * (dist - distAdjust) + math.cos(angle + math.pi/2.0) * plateWidth * 0.25 , \
                                   y = math.sin(angle) * (dist - distAdjust) + math.sin(angle + math.pi/2.0) * plateWidth * 0.25, feed=400)
             # Move below touch plate
@@ -1212,12 +1192,12 @@ class GCodeSender:
       global cutterDiameter
 
       cncGcodeGenerator = cncGcodeGeneratorClass(cncPaths           = cncPaths,
-                                           materialThickness  = materialThickness,
-                                           depthBelowMaterial = 0.06,
-                                           depthPerPass       = 0.107,
-                                           cutFeedRate        = 79,
-                                           safeHeight         = 0.25,
-                                           tabHeight          = 0.12,
+                                           materialThickness  = config.cutting_parameters.material_thickness,
+                                           depthBelowMaterial = config.cutting_parameters.depth_below_material,
+                                           depthPerPass       = config.cutting_parameters.depth_per_pass,
+                                           cutFeedRate        = config.cutting_parameters.cut_feed_rate,
+                                           safeHeight         = config.cutting_parameters.safe_height,
+                                           tabHeight          = config.cutting_parameters.tab_height,
                                            useMM              = False # use inches
                                           )
       cncGcodeGenerator.Generate()
@@ -1255,12 +1235,12 @@ class GCodeSender:
                                cutterDiameter  = cutterDiameter
                         )
       cncGcodeGenerator = cncGcodeGeneratorClass(cncPaths           = cncPaths,
-                                           materialThickness  = materialThickness,
-                                           depthBelowMaterial = 0.06,
-                                           depthPerPass       = 0.1,
-                                           cutFeedRate        = 79,
-                                           safeHeight         = 1.0,
-                                           tabHeight          = 0.12,
+                                           materialThickness  = config.cutting_parameters.material_thickness,
+                                           depthBelowMaterial = config.cutting_parameters.depth_below_material,
+                                           depthPerPass       = config.cutting_parameters.depth_per_pass,
+                                           cutFeedRate        = config.cutting_parameters.cut_feed_rate,
+                                           safeHeight         = config.cutting_parameters.safe_height,
+                                           tabHeight          = config.cutting_parameters.tab_height,
                                            useMM              = False # use inches
                                           )
       cncGcodeGenerator.Generate()
@@ -1321,9 +1301,9 @@ class GCodeSender:
 # Main
 #############################################################################
 
-cap = cv2.VideoCapture(1, cv2.CAP_DSHOW) # Set Capture Device, in case of a USB Webcam try 1, or give -1 to get a list of available devices
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 800)
+cap = cv2.VideoCapture(config.vision_settings.camera_device_index, cv2.CAP_DSHOW) # Set Capture Device
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.vision_settings.camera_width)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.vision_settings.camera_height)
 
 #Set Width and Height 
 # cap.set(3,1280)
