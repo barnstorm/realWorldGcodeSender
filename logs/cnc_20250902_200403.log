@@ -1,0 +1,9 @@
+2025-09-02 20:04:03 - root - [32mINFO[0m - ============================================================
+2025-09-02 20:04:03 - root - [32mINFO[0m - CNC G-Code Sender Application Started
+2025-09-02 20:04:03 - root - [32mINFO[0m - Log Level: INFO
+2025-09-02 20:04:03 - root - [32mINFO[0m - Log Directory: logs
+2025-09-02 20:04:03 - root - [32mINFO[0m - ============================================================
+2025-09-02 20:04:03 - core.application - [32mINFO[0m - CNC Application initialized
+2025-09-02 20:04:03 - core.application - [32mINFO[0m - Starting CNC application
+2025-09-02 20:04:03 - core.application - [31mERROR[0m - UI module not implemented yet: No module named 'ui.interfaces.matplotlib_ui'
+2025-09-02 20:04:03 - core.application - [31mERROR[0m - Cannot run without UI

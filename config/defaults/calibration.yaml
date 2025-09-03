@@ -1,0 +1,37 @@
+calibration:
+  markers:
+    type: "charuco"
+    dictionary: "DICT_6X6_250"
+    box_width: 0.745642857  # inches
+    board_size: [10, 7]  # columns x rows
+    
+    # Reference positions on machine
+    right_ref_position:
+      x: 3.83
+      y: -34.2
+      z: -1.9025
+    
+    left_ref_position:
+      x: -39.17
+      y: -34.2
+      z: -1.03
+    
+    right_far_height: 1.909  # Height at Y=0
+    left_far_height: 2.6665
+    
+  camera:
+    source: "webcam"  # webcam, file, or network
+    device_index: 0
+    resolution: [1920, 1080]
+    fps: 30
+    exposure: "auto"
+    brightness: 0.5
+    contrast: 0.5
+    display_size: [1400, 1050]
+  
+  calibration_dir: "calibration"
+  camera_matrix_file: "camera_matrix.npy"
+  distortion_coeffs_file: "distortion_coeffs.npy"
+  homography_file: "homography.npy"
+  auto_calibrate: false
+  save_calibration_images: true

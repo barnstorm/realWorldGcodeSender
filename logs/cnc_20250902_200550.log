@@ -1,0 +1,15 @@
+2025-09-02 20:05:50 - root - [32mINFO[0m - ============================================================
+2025-09-02 20:05:50 - root - [32mINFO[0m - CNC G-Code Sender Application Started
+2025-09-02 20:05:50 - root - [32mINFO[0m - Log Level: INFO
+2025-09-02 20:05:50 - root - [32mINFO[0m - Log Directory: logs
+2025-09-02 20:05:50 - root - [32mINFO[0m - ============================================================
+2025-09-02 20:05:50 - core.application - [32mINFO[0m - CNC Application initialized
+2025-09-02 20:05:50 - core.application - [32mINFO[0m - Starting CNC application
+2025-09-02 20:05:56 - ui.interfaces.matplotlib_ui - [32mINFO[0m - Matplotlib UI initialized successfully
+2025-09-02 20:05:56 - core.application - [32mINFO[0m - UI initialized successfully
+2025-09-02 20:05:56 - ui.interfaces.matplotlib_ui - [32mINFO[0m - Starting Matplotlib UI event loop
+2025-09-02 20:06:03 - ui.interfaces.matplotlib_ui - [32mINFO[0m - UI window closed
+2025-09-02 20:06:03 - core.application - [32mINFO[0m - Shutting down application
+2025-09-02 20:06:03 - ui.interfaces.matplotlib_ui - [32mINFO[0m - Matplotlib UI stopped
+2025-09-02 20:06:03 - core.event_bus - [32mINFO[0m - Event bus stopped
+2025-09-02 20:06:03 - core.application - [32mINFO[0m - Application shutdown complete

@@ -1,0 +1,13 @@
+2025-09-02 20:03:37 - root - [32mINFO[0m - ============================================================
+2025-09-02 20:03:37 - root - [32mINFO[0m - CNC G-Code Sender Application Started
+2025-09-02 20:03:37 - root - [32mINFO[0m - Log Level: INFO
+2025-09-02 20:03:37 - root - [32mINFO[0m - Log Directory: logs
+2025-09-02 20:03:37 - root - [32mINFO[0m - ============================================================
+2025-09-02 20:03:37 - core.application - [32mINFO[0m - CNC Application initialized
+2025-09-02 20:03:37 - core.application - [32mINFO[0m - Starting CNC application
+2025-09-02 20:03:37 - core.application - [31mERROR[0m - Camera module not implemented yet: No module named 'vision.camera.webcam'
+2025-09-02 20:03:37 - core.application - [33mWARNING[0m - Running without camera
+2025-09-02 20:03:37 - core.application - [31mERROR[0m - Machine module not implemented yet: No module named 'machine.controllers.grbl'
+2025-09-02 20:03:38 - core.application - [33mWARNING[0m - Running without machine connection
+2025-09-02 20:03:38 - core.application - [31mERROR[0m - UI module not implemented yet: No module named 'ui.interfaces.matplotlib_ui'
+2025-09-02 20:03:38 - core.application - [31mERROR[0m - Cannot run without UI

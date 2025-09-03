@@ -1,0 +1,20 @@
+machine:
+  type: "grbl"
+  port: "auto"  # auto-detect or specify COM port
+  baudrate: 115200
+  
+  bed_size:
+    x: 35.0
+    y: 35.0
+    z: 3.75
+  
+  origin_position: "back_right_top"
+  origin_coordinates:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  
+  soft_limits: true
+  hard_limits: true
+  max_feedrate: 1000.0  # inches per minute
+  max_acceleration: 100.0  # inches per second squared

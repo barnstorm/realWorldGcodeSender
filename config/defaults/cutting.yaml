@@ -1,0 +1,24 @@
+cutting:
+  # Material settings
+  material_thickness: 0.471  # inches
+  material_type: "wood"
+  
+  # Tool settings
+  cutter_diameter: 0.125  # inches
+  cutter_type: "endmill"
+  
+  # Cutting parameters
+  cut_depth_per_pass: 0.125  # inches
+  feedrate: 400.0  # inches per minute
+  plunge_rate: 100.0  # inches per minute
+  spindle_speed: 10000.0  # RPM
+  
+  # Tab settings
+  tab_height: 0.1  # inches
+  tab_width: 0.25  # inches
+  tabs_per_inch: 0.25
+  auto_tabs: true
+  
+  # Safety settings
+  safe_z: 0.5  # inches above material
+  clearance_height: 0.1  # inches above material for moves
