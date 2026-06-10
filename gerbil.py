@@ -132,7 +132,11 @@ class Gerbil:
     on_simulation_finished
     : Emitted when Gerbil's target is set to "simulator" and the job is executed.
     : 1 argument: list of all G-Code commands that would have been sent to Grbl
-    
+
+    on_file_written
+    : Emitted when Gerbil's target is set to "file" and the job is executed.
+    : 1 argument: the path of the file that the G-Code commands were written to
+
     on_vars_change
     : Emitted after G-Code is loaded into the buffer and variables have been detected
     : 1 argument: a dict of the detected variables
@@ -270,9 +274,16 @@ class Gerbil:
         # which means the serial port. Another target is "simulator",
         # you will receive a callback with even string
         # "on_simulation_finished" and a buffer of the G-Code commands
-        # that would have been sent out to Grbl.
-        # TODO: Add "file" target.
+        # that would have been sent out to Grbl. The "file" target writes
+        # the G-Code commands to the file given by `self.target_file_path`
+        # instead of sending them out, and emits the "on_file_written"
+        # callback when finished.
         self.target = "firmware"
+
+        ## @var target_file_path
+        # The path of the file that the G-Code commands are written to when
+        # `self.target` is set to "file".
+        self.target_file_path = "gerbil_output.gcode"
         
         ## @var connected
         # `True` when connected to Grbl (after boot), otherwise `False`
@@ -820,7 +831,25 @@ class Gerbil:
             
             self._set_job_finished(True)
             self._callback("on_simulation_finished", buf)
-        
+
+        elif self.target == "file":
+            buf = []
+            while self._streaming_src_end_reached == False:
+                self._set_next_line(True)
+                if self._current_line_nr < self.buffer_size:
+                    buf.append(self._current_line)
+
+            # one line still to go
+            self._set_next_line(True)
+            buf.append(self._current_line)
+
+            with open(self.target_file_path, "w") as f:
+                for line in buf:
+                    f.write(line + "\n")
+
+            self._set_job_finished(True)
+            self._callback("on_file_written", self.target_file_path)
+
     def _fill_rx_buffer_until_full(self):
         while True:
             if self._current_line_sent == True:
