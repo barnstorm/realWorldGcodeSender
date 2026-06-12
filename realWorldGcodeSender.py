@@ -33,6 +33,8 @@ import serial.tools.list_ports
 
 import threading
 import functools
+import queue
+import traceback
 
 # Import configuration system
 from app_config import get_config
@@ -592,9 +594,15 @@ class OverlayGcode:
         print(event.key)
         # if sending a g code file
         if   event.key == 'g':
-            self.sender.send_file(self.gCodeFile, self.xOffset, self.yOffset, self.rotation)
+            self.sender.run_async('send_file', self.sender.send_file,
+                                  self.gCodeFile, self.xOffset, self.yOffset, self.rotation)
         # if sending an svf file
         elif event.key == 's':
+            # Bail early if a send is already running: the transforms below
+            # mutate the path points in place and must not be applied twice.
+            if self.sender.is_busy():
+                print("CNC busy; ignoring 's'")
+                return
             # perform transfomrations that were done in GUI on actual points in the path
             rotation = self.rotation * math.pi / 180
             for path, offset in zip(self.cncPaths.cncPaths, self.pathOffsets):
@@ -606,8 +614,8 @@ class OverlayGcode:
             # Before sending add tabs
             #self.cncPaths.addTabs()
             #self.cncPaths.ModifyPointsFromTabLocations()
-                
-            self.sender.send_svf(self.cncPaths)
+
+            self.sender.run_async('send_svf', self.sender.send_svf, self.cncPaths)
         elif event.key == 'n':
             self.pathIndex = self.pathIndex + 1
         elif event.key == 'p':
@@ -621,7 +629,8 @@ class OverlayGcode:
             #sepcify the X and Y estimated position of the reference block
             #self.refPlateMeasuredLoc = self.sender.zero_on_refPlate(self.refPoints)
             #Just probe z height for now for demo
-            self.sender.zero_on_refPlate(self.refPoints, True)
+            self.sender.run_async('zero_on_refPlate',
+                                  self.sender.zero_on_refPlate, self.refPoints, True)
             print("refPlateMeasuredLoc: " + str(self.refPlateMeasuredLoc))
             print("camRefCenter: " + str(self.camRefCenter))
 
@@ -662,7 +671,8 @@ class OverlayGcode:
             # offset G codes by workspace zero as G codes send relative to workspace offset
             offset = Point3D(-self.refPlateMeasuredLoc[0], \
                              -self.refPlateMeasuredLoc[1])
-            self.sender.send_drawnPoints(offset, self.drawnPoints)
+            self.sender.run_async('send_drawnPoints',
+                                  self.sender.send_drawnPoints, offset, self.drawnPoints)
         elif event.key == 'shift':
             self.shiftHeld = True
             print("shift")
@@ -906,9 +916,17 @@ def display_4_lines(pixels, frame, flip=False):
 
 class GCodeSender:
     def __init__(self):
-        self.event = threading.Event()
-        self.dataList = []
-        self.eventList = []
+        # Thread-safe queue of responses read back from the controller.  The
+        # gerbil callback runs on the serial reader thread and pushes onto this
+        # queue; waitOnGCodeComplete() blocks on it from whichever thread is
+        # running a CNC operation.
+        self.respQueue = queue.Queue()
+
+        # Background worker used to run long blocking operations (probing,
+        # streaming a file, etc.) off the matplotlib GUI thread so the UI stays
+        # responsive.  Only one operation is allowed to run at a time.
+        self._job_thread = None
+        self._job_lock = threading.Lock()
 
         self.gerbil = Gerbil(self.gerbil_callback)
         self.gerbil.setup_logging()
@@ -948,11 +966,10 @@ class GCodeSender:
         print("args    event={} data={}".format(eventstring.ljust(30), ", ".join(args)))
         self.curData = data
         self.curEvent = eventstring
-        self.dataList.append(data)
-        self.eventList.append(eventstring)
 
-        #indicate callback is done
-        self.event.set()
+        # Hand the response off to any waiter.  Queue.put() is thread-safe and
+        # wakes a blocked waitOnGCodeComplete() without busy-spinning.
+        self.respQueue.put(data)
 
     def get_absolute_pos(self):
         self.gerbil.send_immediately("?\n")
@@ -1135,19 +1152,14 @@ class GCodeSender:
         return self.probeSequence(angle, justZ)
 
     def waitOnGCodeComplete(self, gCode):
+      # Block until a controller response containing gCode arrives.  Queue.get()
+      # sleeps the calling thread (no busy-wait) and is woken by gerbil_callback.
       resp = None
-      while resp == None:
-        while len(self.dataList) == 0:
-          self.event.wait()
-        print("curData:" + str(self.dataList[0]))
-        for data in self.dataList:
-          print("    " + str(data))
-          if gCode in str(data):
-            resp = data
-        #Remove item from list
-        self.dataList.pop(0)
-        self.eventList.pop(0)
-        #time.sleep(1)
+      while resp is None:
+        data = self.respQueue.get()
+        print("    " + str(data))
+        if gCode in str(data):
+          resp = data
       print("resp: " + str(resp))
       print("Found: " + str(resp[0]))
       if isinstance(resp[0], dict):
@@ -1156,8 +1168,38 @@ class GCodeSender:
           return resp[0]
 
     def flushGcodeRespQue(self):
-        self.dataList = []
-        self.eventList = []
+        # Drain any stale responses left over from a previous operation.
+        try:
+            while True:
+                self.respQueue.get_nowait()
+        except queue.Empty:
+            pass
+
+    def is_busy(self):
+        """True while a background CNC operation is in progress."""
+        with self._job_lock:
+            return self._job_thread is not None and self._job_thread.is_alive()
+
+    def run_async(self, name, func, *args, **kwargs):
+        """Run a blocking CNC operation on a background thread so the GUI does
+        not freeze.  Only one operation may run at a time; calls made while an
+        operation is already in progress are ignored (it is unsafe to interleave
+        machine moves)."""
+        with self._job_lock:
+            if self._job_thread is not None and self._job_thread.is_alive():
+                print("CNC busy; ignoring '{}'".format(name))
+                return False
+
+            def runner():
+                try:
+                    func(*args, **kwargs)
+                except Exception:
+                    print("Error in CNC operation '{}':".format(name))
+                    traceback.print_exc()
+
+            self._job_thread = threading.Thread(target=runner, name=name, daemon=True)
+            self._job_thread.start()
+            return True
 
     def _get_xyz_string(self, x = None, y = None, z = None):
         if x == None:
