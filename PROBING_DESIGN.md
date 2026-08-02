@@ -1,6 +1,8 @@
 # Probing & the Workpiece Frame
 
-Status: **design / seam sketched** (no behavior change to `realWorldGcodeSender.py` yet)
+Status: **implemented and wired** (strategies, targeting, toolpath warp, and the
+monolith key bindings; unit-tested against fake machines in
+`tests/test_probing.py`)
 
 ## The idea
 
@@ -62,24 +64,49 @@ refined values back into the frame.
 |------|------|
 | `workpiece_frame.py` | Pure data: `Source`, `Measured`, `ZSurface`, `WorkpieceFrame` (+ workpiece->machine transform). No hardware deps. |
 | `probing/base.py` | The seam: `Machine` protocol, `ProbeTarget`, `ProbeStrategy`, `register`/`get_strategy`/`available`. |
-| `probing/strategies.py` | `z_touch_off` and `z_mesh` (working), `edge_refine` (stub). |
+| `probing/strategies.py` | `z_touch_off`, `z_mesh`, and `edge_refine` -- all working. |
+| `probing/targets.py` | Vision-driven target selection: `propose_z_targets` (lattice over the placed cut region, spaced off the cut lines) and `propose_edge_targets` (rectangular stock). |
 | `probing/mesh.py` | `interpolate_z` -- inverse-distance for now; Delaunay/barycentric later. |
+| `toolpath_warp.py` | The path layer's piece: `warp_points` / `warp_gcode_lines` bend programmed Z onto the probed surface, splitting long feed moves so they follow it between samples. |
+| `tests/test_probing.py` | Fake-machine unit tests for all of the above (`python tests/test_probing.py`). |
 
-Adapting the monolith is a few lines (not done yet): wrap `GCodeSender` so
-`probe / move / position` map to its existing `probe / work_offset_move /
-get_absolute_pos`, build a frame from the overlay's offset/rotation, hand it to a
-strategy.
+The monolith adaptation promised above exists as `GCodeSenderMachine` in
+`realWorldGcodeSender.py` (`probe / move / position` -> `probe /
+work_offset_move / get_absolute_pos`).
+
+### Wired key bindings
+
+- **`z`** -- existing touch-plate zeroing, which now also records an identity
+  `WorkpieceFrame` (workpiece == work coords, Z at PROBE fidelity).
+- **`Z`** -- probes a Z mesh: targets proposed from the placed cut paths via
+  `propose_z_targets`, measured by the `z_mesh` strategy, stored on the frame.
+- **`s` / `C`** -- the send paths pass the frame; when it has a mesh, generated
+  G-code is run through `warp_gcode_lines` so depth of cut stays constant.
+- **`space` / `r` / `x`** -- recovery keys (feed hold `!`, resume `~`, kill
+  alarm `$X`); deliberately not busy-guarded, and matched by
+  `waitOnGCodeComplete`'s timeout which sends a feed hold instead of hanging.
+
+### `edge_refine` geometry (implemented)
+
+Each target drops in beside the expected edge and probes along its inward
+`approach` normal. Contacts are tool-center points; the cutter-radius push-out
+happens only *after* the angle is refined (2+ touches on one edge give its
+direction), so the radius correction does not inherit vision's angle error.
+Each probed edge pins the origin along that edge's normal; with one edge probed
+the other normal keeps its vision value and the recorded tolerance says so.
+Supported edges are the two through the workpiece origin (approach ~ 0 and
+~ pi/2) -- far edges would need the stock size, which the frame does not know.
 
 ## Open / not done
 
-- **Z-mesh -> toolpath warp** (the real algorithmic piece): triangulate samples,
-  look up surface Z per cut segment, split long moves so they follow the surface.
-  Lives in the path layer, not in `probing/`.
-- **`edge_refine` geometry**: mapping touched edges back onto origin + angle,
-  one- vs two-edge corner cases, cutter-radius offset at the tool tip.
-- **Wiring into `realWorldGcodeSender.py`** (the `z` key path).
-- **Vision-driven target selection** (auto-pick safe probe points from the placed
-  toolpath).
+- **Delaunay/barycentric `interpolate_z`** -- inverse-distance shipped; swap the
+  body when it matters (signature stays).
+- **Warping `send_file`** -- the external-G-code path is not warped (files may
+  be metric and place work via G54/G68; the mesh is in inches/work coords).
+  `warp_gcode_lines` handles the generated-inches paths (`s`, `C`).
+- **`edge_refine` UI wiring** -- the strategy and rectangular-stock targeting
+  work under test; there is no key binding yet because stock width/height have
+  no home in the overlay UI yet.
 
 ## Future source: dense 3D capture
 

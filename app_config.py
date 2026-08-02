@@ -47,6 +47,18 @@ class PhysicalSetup:
     right_box_far_height: float = 2.38  # Height at Y=0 end
     left_box_far_height: float = 3.1375  # Height at Y=0 end
 
+    # Flat AprilTag strips (rail tops + bed edges) for PnP bed calibration.
+    # Tag centers sit at machine coords derived from these; see machine_tags.py.
+    machine_tag_size: float = 1.4       # printed tag square, inches
+    machine_tag_pitch: float = 3.2      # center-to-center spacing along Y
+    machine_tag_count: int = 9          # tags per strip (max 10: ID blocks of 10)
+    machine_tag_y_start: float = -1.7   # Y of each strip's first tag center
+    rail_top_height: float = 3.0        # rail top above bed surface (measure it)
+    rail_top_right_x: float = 4.0       # X centerline of right rail-top strip
+    rail_top_left_x: float = -39.0      # X centerline of left rail-top strip
+    bed_tags_right_x: float = -1.0      # X centerline of right bed strip
+    bed_tags_left_x: float = -34.0      # X centerline of left bed strip
+
 
 @dataclass
 class CuttingParameters:
@@ -67,6 +79,7 @@ class VisionSettings:
     camera_device_index: int = 1  # Camera device index (0, 1, 2, etc.)
     camera_width: int = 1280  # Camera capture width
     camera_height: int = 800  # Camera capture height
+    camera_rotation: int = 0  # Rotate live frames clockwise: 0, 90, 180, 270
 
 
 @dataclass

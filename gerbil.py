@@ -481,6 +481,15 @@ class Gerbil:
         Immediately send the kill alarm command ($X) to Grbl.
         """
         self._iface_write("$X\n")
+
+    def send_realtime(self, byte_value):
+        """Send one GRBL realtime command byte without G-code preprocessing."""
+        if self.is_connected() == False:
+            return
+        value = chr(byte_value) if isinstance(byte_value, int) else byte_value
+        if len(value) != 1:
+            raise ValueError("realtime command must be one byte")
+        self._iface_write(value)
         
         
     def homing(self):
@@ -1019,12 +1028,55 @@ class Gerbil:
             self.logger.error("{}: Could not parse gcode parser report: '{}'".format(self.name, line))
         
     def _update_state(self, line):
-        m = re.match("<(.*?),MPos:(.*?),WPos:(.*?)>", line)
-        self.cmode = m.group(1)
-        mpos_parts = m.group(2).split(",")
-        wpos_parts = m.group(3).split(",")
-        self.cmpos = (float(mpos_parts[0]), float(mpos_parts[1]), float(mpos_parts[2]))
-        self.cwpos = (float(wpos_parts[0]), float(wpos_parts[1]), float(wpos_parts[2]))
+        """Parse GRBL 0.9 comma reports and GRBL 1.1 pipe reports.
+
+        GRBL 1.1 may omit WPos and report WCO instead.  Retain the last WCO so
+        either MPos or WPos can be reconstructed when the report mask changes.
+        Malformed reports are logged and ignored instead of killing _onread.
+        """
+        try:
+            body = line.strip()[1:-1]
+            fields = {}
+            if "|" in body:
+                parts = body.split("|")
+                mode = parts[0]
+                for part in parts[1:]:
+                    if ":" in part:
+                        key, value = part.split(":", 1)
+                        fields[key] = value
+            else:
+                mode_match = re.match(r"^([^,]+),", body)
+                if not mode_match:
+                    raise ValueError("missing mode")
+                mode = mode_match.group(1)
+                for key in ("MPos", "WPos", "WCO"):
+                    match = re.search(r"(?:^|,)" + key + r":([^,]+,[^,]+,[^,>]+)", body)
+                    if match:
+                        fields[key] = match.group(1)
+
+            def xyz(value):
+                values = tuple(float(v) for v in value.split(",")[:3])
+                if len(values) != 3:
+                    raise ValueError("position must have three axes")
+                return values
+
+            self.cmode = mode
+            wco = xyz(fields["WCO"]) if "WCO" in fields else getattr(self, "_wco", None)
+            if "MPos" in fields:
+                self.cmpos = xyz(fields["MPos"])
+            if "WPos" in fields:
+                self.cwpos = xyz(fields["WPos"])
+            if "MPos" in fields and "WPos" in fields:
+                wco = tuple(m - w for m, w in zip(self.cmpos, self.cwpos))
+            elif "MPos" in fields and wco is not None:
+                self.cwpos = tuple(m - o for m, o in zip(self.cmpos, wco))
+            elif "WPos" in fields and wco is not None:
+                self.cmpos = tuple(w + o for w, o in zip(self.cwpos, wco))
+            if wco is not None:
+                self._wco = wco
+        except (ValueError, TypeError, IndexError) as exc:
+            self.logger.error("%s: Could not parse status report '%s': %s", self.name, line, exc)
+            return
 
         if (self.cmode != self._last_cmode or
             self.cmpos != self._last_cmpos or

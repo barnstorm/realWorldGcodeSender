@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/classical-0afd9443-6143-4445-99c4-b7b9b0181587/styles.css">
+<script src="_ds/classical-0afd9443-6143-4445-99c4-b7b9b0181587/_ds_bundle.js"></script>
+<style>
+  body{margin:0;background:#d8d5cf;font-family:var(--font-body);display:flex;justify-content:center;padding:26px;min-height:100vh}
+  .num{font-family:var(--font-heading);font-feature-settings:"tnum";letter-spacing:.01em}
+  .mi{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .tbtn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13.5px;color:var(--color-text);background:transparent;border:1px solid var(--color-divider);padding:8px 14px;border-radius:var(--radius-md);white-space:nowrap}
+  .tbtn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent)}
+  .tbtn.pri{color:var(--color-accent);border-color:var(--color-accent)}
+  .tbtn.pri:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
+  .wtab{display:inline-flex;align-items:center;gap:8px;height:100%;font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--color-neutral-600);text-decoration:none;border-bottom:2px solid transparent}
+  .wtab:hover{color:var(--color-text);border-bottom-color:var(--color-neutral-400)}
+  .wtab[aria-current]{color:var(--color-text);border-bottom-color:var(--color-accent)}
+  .wtab[aria-current]:hover{border-bottom-color:var(--color-accent)}
+  .catlink{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-md);font-size:14px;color:var(--color-neutral-700);text-decoration:none;border-left:2px solid transparent}
+  .catlink:hover{background:color-mix(in srgb,var(--color-text) 5%,transparent)}
+  .catlink[aria-current]{color:var(--color-text);background:color-mix(in srgb,var(--color-accent) 10%,transparent);border-left-color:var(--color-accent)}
+  .sec{scroll-margin-top:12px}
+  .sec h4{margin:0 0 4px;font-size:22px;font-weight:400}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 18px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+</style>
+</helmet>
+
+<div style="width:1300px;height:824px;display:flex;flex-direction:column;background:var(--color-bg);border:1px solid var(--color-neutral-400);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden">
+
+  <!-- title bar -->
+  <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="margin-left:12px;font-family:var(--font-heading);font-weight:600;font-size:16px">realWorldGcodeSender</span>
+    <span style="font-size:13px;color:var(--color-neutral-600);font-style:italic">— Settings</span>
+    <span style="margin-left:auto;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">config.json</span>
+  </div>
+
+  <!-- menu bar -->
+  <div style="display:flex;gap:26px;height:32px;align-items:center;padding:0 18px;border-bottom:1px solid var(--color-divider);font-size:13.5px;color:var(--color-neutral-800)">
+    <span>File</span><span>Edit</span><span>View</span><span>Machine</span><span>Probe</span><span>Help</span>
+  </div>
+
+  <!-- workspace tabs -->
+  <div style="display:flex;gap:28px;align-items:stretch;height:40px;padding:0 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg)">
+    <a class="wtab" href="QtUI%20Calibration%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/></svg>Calibration</a>
+    <a class="wtab" href="QtUI%20Main%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg>Workspace</a>
+    <a class="wtab" href="QtUI%20Machine%20Control%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>Machine</a>
+    <a class="wtab" aria-current="page" href="QtUI%20Settings%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Settings</a>
+  </div>
+
+  <!-- body -->
+  <div style="flex:1;display:flex;min-height:0">
+
+    <!-- category nav -->
+    <aside style="width:224px;flex:none;border-right:1px solid var(--color-divider);background:var(--color-neutral-100);padding:16px 12px;display:flex;flex-direction:column;gap:3px">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);padding:0 12px 8px">Categories</div>
+      <a class="catlink" aria-current="page" href="#physical"><svg class="mi" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Physical setup</a>
+      <a class="catlink" href="#cutting"><svg class="mi" viewBox="0 0 24 24"><path d="M6 3v12M18 9v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="m8 6 10 10"/></svg>Cutting parameters</a>
+      <a class="catlink" href="#vision"><svg class="mi" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Vision</a>
+      <a class="catlink" href="#comm"><svg class="mi" viewBox="0 0 24 24"><path d="M4 17V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10M2 17h20M9 21h6"/></svg>Communication</a>
+      <a class="catlink" href="#probing"><svg class="mi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>Probing</a>
+      <div style="margin-top:auto;padding:10px 12px;font-size:11.5px;font-style:italic;color:var(--color-neutral-600);border-top:1px solid var(--color-divider)">Changes apply to the running session; Save writes them to config.json.</div>
+    </aside>
+
+    <!-- form -->
+    <main style="flex:1;min-width:0;overflow:auto;padding:26px 34px;display:flex;flex-direction:column;gap:30px">
+
+      <section class="sec" id="physical">
+        <h4>Physical setup</h4>
+        <p class="text-muted" style="margin:0 0 16px;font-size:13px">Bed geometry and the two ChArUco reference boxes on the vertical rails. All values in inches.</p>
+        <div class="grid3" style="margin-bottom:18px">
+          <div class="field"><label>ChArUco box width</label><div class="input num">0.706</div></div>
+          <div class="field"><label>Bed size X</label><div class="input num">35.0</div></div>
+          <div class="field"><label>Bed size Y</label><div class="input num">35.0</div></div>
+          <div class="field"><label>Bed size Z</label><div class="input num">3.5</div></div>
+        </div>
+        <div class="grid2" style="gap:24px">
+          <div>
+            <h6 style="margin:0 0 10px;padding-bottom:5px;border-bottom:1px solid var(--color-divider)">Right reference box</h6>
+            <div class="grid2">
+              <div class="field"><label>X position</label><div class="input num">36.0</div></div>
+              <div class="field"><label>Y position</label><div class="input num">0.0</div></div>
+              <div class="field"><label>Z offset from bed</label><div class="input num">0.20</div></div>
+              <div class="field"><label>Far-end height</label><div class="input num">3.5</div></div>
+            </div>
+          </div>
+          <div>
+            <h6 style="margin:0 0 10px;padding-bottom:5px;border-bottom:1px solid var(--color-divider)">Left reference box</h6>
+            <div class="grid2">
+              <div class="field"><label>X position</label><div class="input num">−1.0</div></div>
+              <div class="field"><label>Y position</label><div class="input num">0.0</div></div>
+              <div class="field"><label>Z offset from bed</label><div class="input num">0.20</div></div>
+              <div class="field"><label>Far-end height</label><div class="input num">3.5</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <hr class="hr" style="margin:0">
+
+      <section class="sec" id="cutting">
+        <h4>Cutting parameters</h4>
+        <p class="text-muted" style="margin:0 0 16px;font-size:13px">Defaults for generated toolpaths — SVG import and drawn points.</p>
+        <div class="grid3">
+          <div class="field"><label>Material thickness</label><div class="input num">0.500 in</div></div>
+          <div class="field"><label>Cutter diameter</label><div class="input num">0.125 in</div></div>
+          <div class="field"><label>Cut feed rate</label><div class="input num">60 ipm</div></div>
+          <div class="field"><label>Depth per pass</label><div class="input num">0.100 in</div></div>
+          <div class="field"><label>Depth below material</label><div class="input num">0.020 in</div></div>
+          <div class="field"><label>Safe height</label><div class="input num">0.250 in</div></div>
+          <div class="field"><label>Tab height</label><div class="input num">0.080 in</div></div>
+        </div>
+      </section>
+
+      <hr class="hr" style="margin:0">
+
+      <section class="sec" id="vision">
+        <h4>Vision</h4>
+        <p class="text-muted" style="margin:0 0 16px;font-size:13px">Camera capture and the overhead bed-view resolution.</p>
+        <div class="grid3">
+          <div class="field"><label>Bed view size (pixels)</label><div class="input num">1000</div></div>
+          <div class="field"><label>Camera device index</label><div class="input num">0</div></div>
+          <div class="field"><label>Camera width</label><div class="input num">4096</div></div>
+          <div class="field"><label>Camera height</label><div class="input num">3072</div></div>
+        </div>
+      </section>
+
+      <hr class="hr" style="margin:0">
+
+      <section class="sec" id="comm">
+        <h4>Communication</h4>
+        <p class="text-muted" style="margin:0 0 16px;font-size:13px">Serial link to the grbl controller.</p>
+        <div class="grid3" style="align-items:end">
+          <div class="field"><label>COM port</label><div class="input num">COM3</div></div>
+          <div class="field"><label>Baud rate</label><div class="input num">115200</div></div>
+          <label class="radio" style="padding-bottom:8px"><input type="checkbox" checked><span class="dot"></span>Auto-detect port</label>
+        </div>
+      </section>
+
+      <hr class="hr" style="margin:0">
+
+      <section class="sec" id="probing">
+        <h4>Probing</h4>
+        <p class="text-muted" style="margin:0 0 16px;font-size:13px">Touch-plate dimensions and probe feed rates.</p>
+        <div class="grid3">
+          <div class="field"><label>Touch-plate height</label><div class="input num">0.500 in</div></div>
+          <div class="field"><label>Touch-plate width</label><div class="input num">1.500 in</div></div>
+          <div class="field"><label>Distance to notch</label><div class="input num">0.250 in</div></div>
+          <div class="field"><label>Probe feed — fast</label><div class="input num">15.0 ipm</div></div>
+          <div class="field"><label>Probe feed — slow</label><div class="input num">5.9 ipm</div></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- action bar -->
+  <div style="display:flex;align-items:center;gap:10px;height:60px;flex:none;padding:0 22px;background:var(--color-neutral-100);border-top:1px solid var(--color-divider)">
+    <button class="tbtn">Load default</button>
+    <button class="tbtn">Load from file…</button>
+    <span style="margin-left:auto;font-size:12px;font-style:italic;color:var(--color-neutral-600)">Unsaved changes</span>
+    <button class="tbtn">Apply</button>
+    <button class="tbtn">Save as…</button>
+    <button class="tbtn pri"><svg class="mi" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Save</button>
+  </div>
+
+  <!-- status bar -->
+  <div style="display:flex;align-items:center;gap:20px;height:34px;flex:none;padding:0 18px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-700)">
+    <span style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 22%,transparent)"></span>Connected · COM3</span>
+    <span>inches</span>
+    <span>config.json · <span class="num" style="color:var(--color-accent-800)">loaded</span></span>
+    <span style="margin-left:auto;font-family:var(--font-heading);font-weight:600;letter-spacing:.05em;color:var(--color-neutral-800)">SETTINGS</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/classical-0afd9443-6143-4445-99c4-b7b9b0181587/styles.css">
+<script src="_ds/classical-0afd9443-6143-4445-99c4-b7b9b0181587/_ds_bundle.js"></script>
+<style>
+  body{margin:0;background:#d8d5cf;font-family:var(--font-body);
+    display:flex;justify-content:center;padding:34px;min-height:100vh}
+  .num{font-family:var(--font-heading);font-feature-settings:"tnum"}
+  .stagenum{font-family:var(--font-heading);font-weight:600;font-size:34px;line-height:1;color:var(--color-accent-400)}
+  .diagram{width:100%;aspect-ratio:6/5;box-sizing:border-box;
+    border:6px solid var(--color-surface);outline:1px solid var(--color-divider);
+    background:#efe7d7;box-shadow:var(--shadow-md);line-height:0}
+  .diagram svg{width:100%;height:100%;display:block}
+  .arrow{align-self:center;flex:none;color:var(--color-accent);font-family:var(--font-heading);font-size:30px;padding:0 2px}
+  .dlabel{font-family:var(--font-heading);font-weight:600;font-size:11px;fill:var(--color-accent-800)}
+</style>
+</helmet>
+
+<div style="width:1300px;background:var(--color-bg);border:1px solid var(--color-neutral-400);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:40px 44px 36px">
+
+  <!-- header -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--color-text);padding-bottom:16px">
+    <div style="max-width:760px">
+      <div class="card-kicker" style="margin-bottom:8px">Probing · edge refine</div>
+      <h2 style="margin:0 0 10px;font-size:38px;font-weight:400">Touching the real edges</h2>
+      <p style="margin:0;font-size:14px;color:var(--color-neutral-700);max-width:670px">Probing the workpiece edges turns vision's approximate XY into concrete, workpiece-oriented actuals. Vision already knows each edge to within a pixel, so the probe refines rather than blindly hunts.</p>
+    </div>
+    <div style="text-align:right;font-size:12px;color:var(--color-neutral-600)">
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text)">edge_refine</div>
+      rectangular stock · 2 edges
+    </div>
+  </div>
+
+  <!-- storyboard -->
+  <div style="display:flex;gap:10px;align-items:stretch;margin-top:26px">
+
+    <!-- stage 1 -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:10px"><span class="stagenum">1</span><span style="font-family:var(--font-heading);font-weight:600;font-size:17px">Vision's approximate edges</span></div>
+      <div class="diagram">
+        <svg viewBox="0 0 240 200">
+          <g transform="rotate(-6 64 148)">
+            <rect x="64" y="44" width="118" height="104" fill="#ffe3bf" fill-opacity="0.6" stroke="#b90" stroke-width="0"/>
+            <rect x="64" y="44" width="118" height="104" fill="none" stroke="#c9b48a" stroke-width="1.5"/>
+            <line x1="64" y1="148" x2="182" y2="148" stroke="#605d5d" stroke-width="2.4" stroke-dasharray="6 4"/>
+            <line x1="64" y1="44" x2="64" y2="148" stroke="#605d5d" stroke-width="2.4" stroke-dasharray="6 4"/>
+            <circle cx="64" cy="148" r="5.5" fill="none" stroke="#7d5411" stroke-width="2.4"/>
+          </g>
+          <text x="118" y="184" class="dlabel">origin ≈ vision</text>
+        </svg>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-neutral">XY · vision</span><span class="tag tag-outline">∠ · manual</span></div>
+      <p style="margin:0;font-size:12.5px;color:var(--color-neutral-700)">Rectangular stock. Origin and angle are close, but soft — the two edges through the origin are the ones we can pin.</p>
+    </div>
+
+    <div class="arrow">›</div>
+
+    <!-- stage 2 -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:10px"><span class="stagenum">2</span><span style="font-family:var(--font-heading);font-weight:600;font-size:17px">Propose edge targets</span></div>
+      <div class="diagram">
+        <svg viewBox="0 0 240 200">
+          <g transform="rotate(-6 64 148)">
+            <rect x="64" y="44" width="118" height="104" fill="#ffe3bf" fill-opacity="0.45" stroke="#c9b48a" stroke-width="1.5"/>
+            <line x1="64" y1="148" x2="182" y2="148" stroke="#605d5d" stroke-width="2"/>
+            <line x1="64" y1="44" x2="64" y2="148" stroke="#605d5d" stroke-width="2"/>
+            <g stroke="#a06f24" stroke-width="2" fill="#7d5411">
+              <rect x="89" y="160" width="6" height="6"/><line x1="92" y1="159" x2="92" y2="151"/><path d="M92 146 l-4 6 h8 Z"/>
+              <rect x="117" y="160" width="6" height="6"/><line x1="120" y1="159" x2="120" y2="151"/><path d="M120 146 l-4 6 h8 Z"/>
+              <rect x="145" y="160" width="6" height="6"/><line x1="148" y1="159" x2="148" y2="151"/><path d="M148 146 l-4 6 h8 Z"/>
+              <rect x="40" y="67" width="6" height="6"/><line x1="47" y1="70" x2="55" y2="70"/><path d="M60 70 l-6 -4 v8 Z"/>
+              <rect x="40" y="97" width="6" height="6"/><line x1="47" y1="100" x2="55" y2="100"/><path d="M60 100 l-6 -4 v8 Z"/>
+            </g>
+            <circle cx="64" cy="148" r="5.5" fill="none" stroke="#7d5411" stroke-width="2.4"/>
+          </g>
+        </svg>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-accent">approach normals</span></div>
+      <p style="margin:0;font-size:12.5px;color:var(--color-neutral-700)"><span class="num">propose_edge_targets</span> drops points beside each edge; each probes inward along its <span class="num">approach</span> normal.</p>
+    </div>
+
+    <div class="arrow">›</div>
+
+    <!-- stage 3 -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:10px"><span class="stagenum">3</span><span style="font-family:var(--font-heading);font-weight:600;font-size:17px">Touch &amp; find direction</span></div>
+      <div class="diagram">
+        <svg viewBox="0 0 240 200">
+          <g transform="rotate(-6 64 148)">
+            <rect x="64" y="44" width="118" height="104" fill="#ffe3bf" fill-opacity="0.45" stroke="#c9b48a" stroke-width="1.5"/>
+            <line x1="64" y1="148" x2="182" y2="148" stroke="#605d5d" stroke-width="2"/>
+            <line x1="64" y1="44" x2="64" y2="148" stroke="#605d5d" stroke-width="2"/>
+            <line x1="82" y1="148" x2="172" y2="148" stroke="#7d5411" stroke-width="3"/>
+            <g fill="#7d5411"><circle cx="92" cy="148" r="4.5"/><circle cx="120" cy="148" r="4.5"/><circle cx="148" cy="148" r="4.5"/><circle cx="64" cy="70" r="4.5"/><circle cx="64" cy="100" r="4.5"/></g>
+            <circle cx="64" cy="148" r="5.5" fill="none" stroke="#7d5411" stroke-width="2.4"/>
+          </g>
+          <text x="70" y="186" class="dlabel">2+ touches → edge angle</text>
+        </svg>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-neutral">tool-center contacts</span></div>
+      <p style="margin:0;font-size:12.5px;color:var(--color-neutral-700)">Contacts are tool-<span class="num">center</span> points. Two on one edge give its true direction before any radius maths.</p>
+    </div>
+
+    <div class="arrow">›</div>
+
+    <!-- stage 4 -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:10px"><span class="stagenum">4</span><span style="font-family:var(--font-heading);font-weight:600;font-size:17px">Radius push-out → pin</span></div>
+      <div class="diagram">
+        <svg viewBox="0 0 240 200">
+          <g transform="rotate(-1 64 148)">
+            <rect x="64" y="44" width="118" height="104" fill="#ffe3bf" fill-opacity="0.6" stroke="#7d5411" stroke-width="2.4"/>
+            <line x1="64" y1="138" x2="182" y2="138" stroke="#a06f24" stroke-width="1.8" stroke-dasharray="5 3"/>
+            <line x1="74" y1="44" x2="74" y2="148" stroke="#a06f24" stroke-width="1.8" stroke-dasharray="5 3"/>
+            <circle cx="64" cy="148" r="6" fill="#7d5411"/>
+          </g>
+          <text x="92" y="186" class="dlabel">origin pinned</text>
+        </svg>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag tag-accent">XY edge · probe</span></div>
+      <p style="margin:0;font-size:12.5px;color:var(--color-neutral-700)">The cutter-radius push-out (dashed) happens <span class="num">after</span> the angle is refined, so it never inherits vision's angle error.</p>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div style="margin-top:30px;padding-top:16px;border-top:1px solid var(--color-divider);display:flex;justify-content:space-between;align-items:center;gap:24px">
+    <p style="margin:0;font-size:13px;font-style:italic;color:var(--color-neutral-700);max-width:760px">Only the two edges <span style="font-style:normal" class="num">through the origin</span> are supported (approach ≈ 0 and ≈ π/2). Each probed edge pins the origin along its own normal; the unprobed normal keeps its vision value, and the recorded tolerance says so.</p>
+    <div style="display:flex;gap:14px;font-size:11px;color:var(--color-neutral-600);flex-wrap:wrap;flex:none">
+      <span style="display:flex;align-items:center;gap:6px"><span class="tag tag-neutral" style="padding:2px 7px">vision</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span class="tag tag-outline" style="padding:2px 7px">manual</span></span>
+      <span style="display:flex;align-items:center;gap:6px"><span class="tag tag-accent" style="padding:2px 7px">probe</span>highest</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#eeece6;font-family:'Kalam',system-ui,sans-serif;color:#222}
+  /* option-stack frame */
+  .dv-turn{padding:44px 48px 36px;border-bottom:1px solid rgba(0,0,0,.09);scroll-margin-top:16px}
+  .dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+  .dv-tid{font:700 11px 'Gaegu',monospace;padding:3px 8px;background:#1a1a1a;color:#fff;border-radius:5px;text-decoration:none}
+  .dv-tname{font:700 15px/1.2 'Kalam',sans-serif;color:#1a1a1a}
+  .dv-sub{font:400 13px/1.4 'Kalam',sans-serif;color:rgba(0,0,0,.55);margin:0 0 24px;max-width:760px}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:11px;scroll-margin-top:16px}
+  .dv-oid{font:700 11px 'Gaegu',monospace;padding:3px 8px;background:rgba(0,0,0,.1);color:#1a1a1a;border-radius:6px;text-decoration:none}
+  .dv-olabel{display:flex;align-items:baseline;gap:9px;font:400 13px/1.3 'Kalam',sans-serif;color:rgba(0,0,0,.6)}
+  .dv-opt:target .dv-oid{background:#c0392b;color:#fff}
+  .dv-next{margin:26px 0 0;font:400 13.5px/1.6 'Kalam',sans-serif;color:rgba(0,0,0,.55)}
+  .dv-next a{color:#1a1a1a}
+  /* wireframe primitives */
+  .win{width:1180px;background:#fbfaf7;border:2px solid #2b2b2b;border-radius:8px;box-shadow:5px 6px 0 rgba(0,0,0,.13);overflow:hidden}
+  .tbar{display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;background:#e7e4dc;border-bottom:1.5px solid #2b2b2b}
+  .tdot{width:11px;height:11px;border:1.5px solid #444;border-radius:50%}
+  .ttl{margin-left:8px;font-size:13px;color:#555}
+  .menu{display:flex;gap:20px;height:26px;align-items:center;padding:0 14px;border-bottom:1.5px solid #cfcabd;font-size:13px;color:#333}
+  .tool{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 12px;border-bottom:1.5px dashed #b9b3a4;background:#f3f1ea}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1.5px solid #2b2b2b;border-radius:6px;background:#fff;font-family:'Kalam';font-size:13px;box-shadow:2px 2px 0 rgba(0,0,0,.1)}
+  .btn.pri{background:#f6ded9;border-color:#c0392b;color:#7d241a}
+  .btn.warn{background:#fbeecb}
+  .btn.sm{padding:3px 8px;font-size:12px;box-shadow:1px 1px 0 rgba(0,0,0,.1)}
+  .sep{width:1.5px;height:22px;background:#c3bdae;margin:0 4px}
+  .ico{width:15px;height:15px;border:1.5px solid #444;border-radius:3px;display:inline-block}
+  .ico.c{border-radius:50%}
+  .row{display:flex}
+  .dock{width:262px;flex:none;padding:14px 14px 18px;border-right:1.5px solid #2b2b2b;background:#f7f5ee;display:flex;flex-direction:column;gap:16px}
+  .dock.r{border-right:none;border-left:1.5px solid #2b2b2b;width:300px}
+  .h{font-weight:700;font-size:13.5px;letter-spacing:.3px;color:#2b2b2b;border-bottom:1.5px solid #2b2b2b;padding-bottom:4px;margin-bottom:2px;display:flex;justify-content:space-between;align-items:baseline}
+  .h small{font-weight:400;font-size:11px;color:#888}
+  .grp{display:flex;flex-direction:column;gap:9px}
+  .fld{display:flex;flex-direction:column;gap:3px}
+  .fld label{font-size:12px;color:#555}
+  .inp{height:24px;border:1.5px solid #999;border-radius:4px;background:#fff;display:flex;align-items:center;padding:0 8px;font-size:12px;color:#444}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .tabs{display:flex;gap:0}
+  .tab{flex:1;text-align:center;padding:5px 0;border:1.5px solid #2b2b2b;font-size:12.5px;background:#eceadf}
+  .tab.on{background:#fff;font-weight:700;border-bottom-color:#fff}
+  .tab:first-child{border-radius:5px 0 0 0}
+  .tab:last-child{border-radius:0 5px 0 0;border-left:none}
+  .list{border:1.5px solid #999;border-radius:5px;background:#fff;font-size:12px}
+  .li{display:flex;justify-content:space-between;padding:5px 9px;border-bottom:1px dashed #d5cfbf;color:#444}
+  .li:last-child{border-bottom:none}
+  .li.on{background:#f6ded9;color:#7d241a;font-weight:700}
+  .canvas{flex:1;position:relative;background:#ded8cb;min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .stock{position:relative;width:56%;height:80%;background:repeating-linear-gradient(115deg,#cbb892 0 12px,#c3ae86 12px 24px);border:2px solid #a08a5e;border-radius:3px;transform:rotate(-4deg);box-shadow:3px 4px 0 rgba(0,0,0,.12)}
+  .photohint{position:absolute;left:12px;top:10px;font-size:12px;color:#7a7364;background:rgba(255,255,255,.6);padding:2px 8px;border-radius:4px;border:1px dashed #8a8375}
+  .clamp{position:absolute;width:26px;height:16px;background:#b9b3a4;border:1.5px solid #6f6a5c;border-radius:3px}
+  .dro{border:1.5px solid #2b2b2b;border-radius:6px;background:#111;color:#e8e3d4;padding:10px 12px;font-family:'Gaegu',monospace;display:flex;flex-direction:column;gap:6px}
+  .droline{display:flex;justify-content:space-between;align-items:baseline;font-size:20px;line-height:1}
+  .droline span:first-child{font-size:13px;color:#8fb98f;width:22px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-size:11px;padding:3px 9px;border:1.5px solid #444;border-radius:20px;background:#fff;display:flex;align-items:center;gap:5px}
+  .chip.probe{border-color:#2e7d32;background:#e6f2e6}
+  .chip.vision{border-color:#1565c0;background:#e3edf9}
+  .chip.manual{border-color:#a9741a;background:#faf0d8;border-style:dashed}
+  .dot{width:8px;height:8px;border-radius:50%;background:#555}
+  .chip.probe .dot{background:#2e7d32}.chip.vision .dot{background:#1565c0}.chip.manual .dot{background:#a9741a}
+  .jog{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:150px}
+  .jogb{aspect-ratio:1;border:1.5px solid #2b2b2b;border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:2px 2px 0 rgba(0,0,0,.09)}
+  .jogb.mid{background:#eceadf;font-size:11px}
+  .console{border-top:1.5px solid #2b2b2b;background:#151515;color:#c6e0c6;font-family:'Gaegu',monospace;font-size:12.5px;padding:9px 14px;height:78px;overflow:hidden;line-height:1.5}
+  .console .cmd{color:#8fb98f}
+  .status{display:flex;align-items:center;gap:18px;height:28px;padding:0 14px;background:#e7e4dc;border-top:1.5px solid #2b2b2b;font-size:12px;color:#444}
+  .status .live{color:#2e7d32}
+  .pill{margin-left:auto;font-size:11px}
+  .rail{width:66px;flex:none;background:#2b2b2b;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 0}
+  .railb{width:50px;padding:9px 0;border-radius:7px;display:flex;flex-direction:column;align-items:center;gap:5px;color:#cfc9ba;font-size:10px}
+  .railb.on{background:#fbfaf7;color:#2b2b2b}
+  .railb .ico{border-color:currentColor}
+  .prog{height:8px;border:1.5px solid #2b2b2b;border-radius:6px;background:#fff;overflow:hidden}
+  .prog i{display:block;height:100%;width:38%;background:repeating-linear-gradient(45deg,#8fb98f 0 6px,#7aa87a 6px 12px)}
+  .drawer{border-top:1.5px solid #2b2b2b;background:#f3f1ea;padding:10px 14px;display:flex;gap:20px;align-items:stretch}
+  .note{font-size:11px;color:#8a8375;font-style:italic}
+  .strip{width:186px;flex:none;border-left:1.5px solid #2b2b2b;background:#f7f5ee;padding:12px;display:flex;flex-direction:column;gap:13px}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t5">
+  <div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname">XYZ touch-plate zeroing</span></div>
+  <p class="dv-sub">The <b>z</b>-key flow: vision auto-finds the touch plate (ArUco id 66) on the stock, the probe touches its top and sides, and work zero lands on the real surface — recording an identity workpiece frame with Z at probe fidelity. <a class="dv-oid" href="#5a">5a</a> storyboards it; <a class="dv-oid" href="#5b">5b</a> is the Z-only / XYZ mode + plate settings.</p>
+  <div class="dv-opts">
+
+    <!-- 5a storyboard -->
+    <div class="dv-opt" id="5a">
+      <div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Touch-plate flow — find → Z → XY → work zero</div>
+      <div style="display:flex;align-items:stretch;gap:0;background:#fbfaf7;border:2px solid #2b2b2b;border-radius:8px;box-shadow:5px 6px 0 rgba(0,0,0,.13);padding:18px 8px">
+
+        <!-- stage 1 -->
+        <div style="width:238px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">1 · Vision finds the plate</div>
+          <div class="canvas" style="height:168px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <svg viewBox="0 0 200 160" style="width:100%;height:100%">
+              <rect x="42" y="30" width="116" height="104" fill="#c3ae86" fill-opacity="0.5" stroke="#8a7a52" stroke-width="1.5"/>
+              <rect x="86" y="62" width="30" height="30" fill="#b9b3a4" stroke="#6f6a5c" stroke-width="1.5"/>
+              <rect x="92" y="66" width="18" height="18" fill="#333"/><text x="101" y="79" font-family="Gaegu" font-size="10" fill="#fff" text-anchor="middle">66</text>
+              <rect x="80" y="56" width="42" height="42" fill="none" stroke="#c0392b" stroke-width="1.6" stroke-dasharray="5 4"/>
+            </svg>
+          </div>
+          <div class="chips"><span class="chip vision"><span class="dot"></span>plate XY · vision</span></div>
+          <span class="note">Auto-detects the touch-plate marker → approximate XY to seed the probe.</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 2 -->
+        <div style="width:238px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">2 · Probe Z (top of plate)</div>
+          <div class="canvas" style="height:168px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <svg viewBox="0 0 200 160" style="width:100%;height:100%">
+              <rect x="42" y="30" width="116" height="104" fill="#c3ae86" fill-opacity="0.4" stroke="#8a7a52" stroke-width="1.5"/>
+              <rect x="86" y="62" width="30" height="30" fill="#b9b3a4" stroke="#6f6a5c" stroke-width="1.5"/>
+              <rect x="96" y="14" width="10" height="16" fill="#333"/>
+              <line x1="101" y1="30" x2="101" y2="60" stroke="#7d5411" stroke-width="2.2"/>
+              <path d="M101 62 l-4 -7 h8 Z" fill="#7d5411"/>
+              <text x="128" y="52" font-family="Kalam" font-size="12" fill="#5a3b0a">Z → 0</text>
+            </svg>
+          </div>
+          <div class="prog"><i style="width:100%"></i></div>
+          <span class="note">Plunge until contact; plate height is subtracted so zero sits on the stock top.</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 3 -->
+        <div style="width:238px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">3 · Probe X &amp; Y (plate sides)</div>
+          <div class="canvas" style="height:168px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <svg viewBox="0 0 200 160" style="width:100%;height:100%">
+              <rect x="42" y="30" width="116" height="104" fill="#c3ae86" fill-opacity="0.4" stroke="#8a7a52" stroke-width="1.5"/>
+              <rect x="86" y="62" width="30" height="30" fill="#b9b3a4" stroke="#6f6a5c" stroke-width="1.5"/>
+              <!-- X: approach left face from left -->
+              <line x1="58" y1="77" x2="80" y2="77" stroke="#7d5411" stroke-width="2.2"/><path d="M86 77 l-7 -4 v8 Z" fill="#7d5411"/>
+              <circle cx="86" cy="77" r="3.5" fill="#c0392b"/>
+              <!-- Y: approach bottom face from below -->
+              <line x1="101" y1="118" x2="101" y2="98" stroke="#7d5411" stroke-width="2.2"/><path d="M101 92 l-4 7 h8 Z" fill="#7d5411"/>
+              <circle cx="101" cy="92" r="3.5" fill="#c0392b"/>
+              <text x="118" y="128" font-family="Kalam" font-size="11" fill="#5a3b0a">+ notch</text>
+            </svg>
+          </div>
+          <span class="note">Touch two faces; plate width/height and the notch offset give the workpiece-oriented XY zero.</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 4 -->
+        <div style="width:238px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">4 · Work zero set</div>
+          <div class="canvas" style="height:168px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <svg viewBox="0 0 200 160" style="width:100%;height:100%">
+              <rect x="42" y="30" width="116" height="104" fill="#c3ae86" fill-opacity="0.55" stroke="#7d5411" stroke-width="2"/>
+              <line x1="86" y1="92" x2="116" y2="92" stroke="#7d5411" stroke-width="2"/>
+              <line x1="86" y1="62" x2="86" y2="92" stroke="#7d5411" stroke-width="2"/>
+              <circle cx="86" cy="92" r="6" fill="#7d5411"/>
+              <line x1="70" y1="92" x2="132" y2="92" stroke="#a06f24" stroke-width="1" stroke-dasharray="3 3"/>
+              <line x1="86" y1="46" x2="86" y2="120" stroke="#a06f24" stroke-width="1" stroke-dasharray="3 3"/>
+              <text x="94" y="112" font-family="Kalam" font-size="12" fill="#5a3b0a">X0 Y0 Z0</text>
+            </svg>
+          </div>
+          <div class="chips"><span class="chip probe"><span class="dot"></span>XYZ · probe</span></div>
+          <span class="note">Records an identity <b>WorkpieceFrame</b> (workpiece == work coords), Z at PROBE fidelity.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5b mode panel -->
+    <div class="dv-opt" id="5b">
+      <div class="dv-olabel"><a class="dv-oid" href="#5b">5b</a>Probe mode &amp; plate settings — Z-only or full XYZ</div>
+      <div class="win" style="width:360px">
+        <div class="tbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttl">Touch-plate zeroing</span></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:15px">
+          <div class="grp">
+            <div class="h">Probe mode</div>
+            <div class="tabs"><span class="tab">Z only</span><span class="tab on">XYZ</span></div>
+            <span class="note">Z-only sets cut depth; XYZ also pins the origin to the plate.</span>
+          </div>
+          <div class="grp">
+            <div class="h">Touch plate <small>inches</small></div>
+            <div class="two">
+              <div class="fld"><label>Plate height</label><div class="inp">0.500</div></div>
+              <div class="fld"><label>Plate width</label><div class="inp">1.500</div></div>
+            </div>
+            <div class="fld"><label>Distance to notch</label><div class="inp">0.250</div></div>
+          </div>
+          <div class="grp">
+            <div class="h">Locate</div>
+            <label style="display:flex;gap:8px;align-items:center;font-size:13px"><span style="width:15px;height:15px;border:1.5px solid #2e7d32;background:#e6f2e6;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:10px">✓</span>Auto-find plate marker (id 66)</label>
+            <span class="note">Off = jog over the plate and start manually.</span>
+          </div>
+          <div style="display:flex;gap:9px;align-items:center;padding:9px 11px;border:1.5px dashed #b9b3a4;border-radius:6px;background:#f3f1ea">
+            <span class="note" style="font-style:normal">Recovery keys stay live: <b>space</b> feed-hold · <b>r</b> resume · <b>x</b> kill alarm.</span>
+          </div>
+          <span class="btn pri" style="justify-content:center">Start zeroing →</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "build <a class="dv-oid" href="#5a">5a</a> hi-fi in Classical" · "add a manual-jog-to-plate variant" · "show the probe-failed / no-contact error" · "put <a class="dv-oid" href="#5b">5b</a> in the main screen's probe panel"</p>
+</section>
+<section class="dv-turn" id="t4">
+  <div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Edge-refine storyboard</span></div>
+  <p class="dv-sub">Touching the real workpiece edges turns vision's <i>approximate</i> XY into concrete, workpiece-oriented actuals. Vision already knows the edge to a pixel, so the probe refines rather than blindly hunts. <a class="dv-oid" href="#4a">4a</a> storyboards it; <a class="dv-oid" href="#4b">4b</a> gives it the stock-dimensions UI home it doesn't have yet.</p>
+  <div class="dv-opts">
+
+    <!-- 4a storyboard -->
+    <div class="dv-opt" id="4a">
+      <div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Edge-refine flow — approach normals → angle → radius push-out</div>
+      <div style="display:flex;align-items:stretch;gap:0;background:#fbfaf7;border:2px solid #2b2b2b;border-radius:8px;box-shadow:5px 6px 0 rgba(0,0,0,.13);padding:18px 8px">
+
+        <!-- stage 1 -->
+        <div style="width:238px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">1 · Vision's approximate edges</div>
+          <div class="canvas" style="height:168px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <svg viewBox="0 0 200 160" style="width:100%;height:100%">
+              <g transform="rotate(-6 55 122)">
+                <rect x="55" y="40" width="98" height="82" fill="#c3ae86" fill-opacity="0.55" stroke="#8a7a52" stroke-width="1.5"/>
+                <line x1="55" y1="122" x2="153" y2="122" stroke="#111" stroke-width="2.5" stroke-dasharray="5 4"/>
+                <line x1="55" y1="40" x2="55" y2="122" stroke="#111" stroke-width="2.5" stroke-dasharray="5 4"/>
+                <circle cx="55" cy="122" r="4.5" fill="none" stroke="#c0392b" stroke-width="2.2"/>
+              </g>
+              <text x="120" y="150" font-family="Kalam" font-size="12" fill="#7a2018">origin ≈ vision</text>
+            </svg>
+          </div>
+          <div class="chips"><span class="chip vision"><span class="dot"></span>XY vision</span><span class="chip manual"><span class="dot"></span>∠ manual</span></div>
+          <span class="note">Rectangular stock; origin &amp; angle are close but soft.</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 2 -->
+        <div style="width:238px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">2 · Propose edge targets</div>
+          <div class="canvas" style="height:168px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <svg viewBox="0 0 200 160" style="width:100%;height:100%">
+              <g transform="rotate(-6 55 122)">
+                <rect x="55" y="40" width="98" height="82" fill="#c3ae86" fill-opacity="0.4" stroke="#8a7a52" stroke-width="1.5"/>
+                <line x1="55" y1="122" x2="153" y2="122" stroke="#111" stroke-width="2"/>
+                <line x1="55" y1="40" x2="55" y2="122" stroke="#111" stroke-width="2"/>
+                <!-- bottom edge targets, approach up -->
+                <g stroke="#7d5411" stroke-width="1.8" fill="#7d5411">
+                  <rect x="78" y="136" width="6" height="6"/><line x1="81" y1="135" x2="81" y2="126"/><path d="M81 123 l-3 5 h6 Z"/>
+                  <rect x="103" y="136" width="6" height="6"/><line x1="106" y1="135" x2="106" y2="126"/><path d="M106 123 l-3 5 h6 Z"/>
+                  <rect x="128" y="136" width="6" height="6"/><line x1="131" y1="135" x2="131" y2="126"/><path d="M131 123 l-3 5 h6 Z"/>
+                </g>
+                <!-- left edge targets, approach right -->
+                <g stroke="#7d5411" stroke-width="1.8" fill="#7d5411">
+                  <rect x="34" y="57" width="6" height="6"/><line x1="41" y1="60" x2="50" y2="60"/><path d="M53 60 l-5 -3 v6 Z"/>
+                  <rect x="34" y="82" width="6" height="6"/><line x1="41" y1="85" x2="50" y2="85"/><path d="M53 85 l-5 -3 v6 Z"/>
+                </g>
+                <circle cx="55" cy="122" r="4.5" fill="none" stroke="#c0392b" stroke-width="2.2"/>
+              </g>
+            </svg>
+          </div>
+          <span class="note"><b>propose_edge_targets</b> drops points beside each edge; each probes inward along its <b>approach</b> normal.</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 3 -->
+        <div style="width:238px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">3 · Touch &amp; find direction</div>
+          <div class="canvas" style="height:168px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <svg viewBox="0 0 200 160" style="width:100%;height:100%">
+              <g transform="rotate(-6 55 122)">
+                <rect x="55" y="40" width="98" height="82" fill="#c3ae86" fill-opacity="0.4" stroke="#8a7a52" stroke-width="1.5"/>
+                <line x1="55" y1="122" x2="153" y2="122" stroke="#111" stroke-width="2"/>
+                <line x1="55" y1="40" x2="55" y2="122" stroke="#111" stroke-width="2"/>
+                <g fill="#c0392b"><circle cx="81" cy="122" r="4"/><circle cx="106" cy="122" r="4"/><circle cx="131" cy="122" r="4"/><circle cx="55" cy="60" r="4"/><circle cx="55" cy="85" r="4"/></g>
+                <!-- fitted direction on bottom edge -->
+                <line x1="70" y1="122" x2="145" y2="122" stroke="#7d5411" stroke-width="2.5"/>
+              </g>
+              <text x="70" y="152" font-family="Kalam" font-size="12" fill="#5a3b0a">2+ touches → edge angle</text>
+            </svg>
+          </div>
+          <span class="note">Contacts are tool-<b>center</b> points. Two on one edge give its true direction.</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 4 -->
+        <div style="width:238px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">4 · Radius push-out → pin origin</div>
+          <div class="canvas" style="height:168px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <svg viewBox="0 0 200 160" style="width:100%;height:100%">
+              <g transform="rotate(-1 55 122)">
+                <rect x="55" y="40" width="98" height="82" fill="#c3ae86" fill-opacity="0.5" stroke="#7d5411" stroke-width="2.2"/>
+                <!-- cutter-radius offset (tool-center path) -->
+                <line x1="55" y1="114" x2="153" y2="114" stroke="#a06f24" stroke-width="1.6" stroke-dasharray="4 3"/>
+                <line x1="63" y1="40" x2="63" y2="122" stroke="#a06f24" stroke-width="1.6" stroke-dasharray="4 3"/>
+                <circle cx="55" cy="122" r="5" fill="#7d5411"/>
+              </g>
+              <text x="86" y="150" font-family="Kalam" font-size="12" fill="#5a3b0a">origin pinned</text>
+            </svg>
+          </div>
+          <div class="chips"><span class="chip probe"><span class="dot"></span>XY edge · probe</span></div>
+          <span class="note">Radius push-out happens <b>after</b> the angle, so it never inherits vision's angle error.</span>
+        </div>
+      </div>
+      <p class="dv-next" style="margin-top:14px">Note · only the two edges <b>through the origin</b> are supported (approach ≈ 0 and ≈ π/2) — far edges would need the stock size, which the frame doesn't hold.</p>
+    </div>
+
+    <!-- 4b stock panel -->
+    <div class="dv-opt" id="4b">
+      <div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Stock dimensions — the missing UI home for edge targeting</div>
+      <div class="win" style="width:360px">
+        <div class="tbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttl">Stock &amp; edges</span></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:15px">
+          <div class="grp">
+            <div class="h">Stock</div>
+            <div class="tabs"><span class="tab on">Rectangular</span><span class="tab">Round</span><span class="tab">Free</span></div>
+            <div class="two">
+              <div class="fld"><label>Width (in)</label><div class="inp">12.00</div></div>
+              <div class="fld"><label>Height (in)</label><div class="inp">6.00</div></div>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="h">Origin corner</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;max-width:150px">
+              <span class="btn sm" style="justify-content:center">◰ TL</span><span class="btn sm" style="justify-content:center">◳ TR</span>
+              <span class="btn sm" style="justify-content:center;background:#f6ded9;border-color:#c0392b;color:#7d241a">◱ BL</span><span class="btn sm" style="justify-content:center">◲ BR</span>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="h">Edges to probe</div>
+            <div style="display:flex;flex-direction:column;gap:7px;font-size:13px">
+              <label style="display:flex;gap:8px;align-items:center"><span style="width:15px;height:15px;border:1.5px solid #2e7d32;background:#e6f2e6;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:10px">✓</span>X edge (through origin, approach ≈ 0)</label>
+              <label style="display:flex;gap:8px;align-items:center"><span style="width:15px;height:15px;border:1.5px solid #2e7d32;background:#e6f2e6;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:10px">✓</span>Y edge (through origin, approach ≈ π/2)</label>
+              <label style="display:flex;gap:8px;align-items:center;color:#999"><span style="width:15px;height:15px;border:1.5px dashed #bbb;border-radius:3px"></span>far edges — need stock size ✓ now known</label>
+            </div>
+          </div>
+          <div style="display:flex;gap:9px;align-items:center;padding:9px 11px;border:1.5px dashed #b9b3a4;border-radius:6px;background:#f3f1ea">
+            <span class="note" style="font-style:normal">With width &amp; height entered here, <b>propose_edge_targets</b> finally has a home — this is the open item PROBING_DESIGN.md flags.</span>
+          </div>
+          <span class="btn pri" style="justify-content:center">Propose edge targets →</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "build <a class="dv-oid" href="#4a">4a</a> hi-fi in Classical" · "combine <a class="dv-oid" href="#4b">4b</a> into the frame inspector <a class="dv-oid" href="#3b">3b</a>" · "show the far-edge probing once stock size is known" · "storyboard XYZ touch-plate zeroing"</p>
+</section>
+<section class="dv-turn" id="t3">
+  <div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Probing flow — "vision proposes, probe disposes"</span></div>
+  <p class="dv-sub">How the workpiece frame gets refined. The frame is always complete &amp; cuttable from cheap sources (vision XY + typed thickness); probing only raises fidelity on whatever you point it at. <a class="dv-oid" href="#3a">3a</a> storyboards the headline Z-mesh flow; <a class="dv-oid" href="#3b">3b</a> is the always-visible frame inspector that drives every strategy.</p>
+  <div class="dv-opts">
+
+    <!-- 3a storyboard -->
+    <div class="dv-opt" id="3a">
+      <div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Z-mesh storyboard — propose → probe → warp</div>
+      <div style="display:flex;align-items:stretch;gap:0;background:#fbfaf7;border:2px solid #2b2b2b;border-radius:8px;box-shadow:5px 6px 0 rgba(0,0,0,.13);padding:18px 8px">
+
+        <!-- stage 1 -->
+        <div style="width:236px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">1 · Frame from vision</div>
+          <div class="canvas" style="height:160px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <div class="stock" style="width:46%;height:78%;transform:rotate(-4deg)"></div>
+            <svg viewBox="0 0 200 200" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg);width:44%;height:72%;overflow:visible"><path d="M70 30 C110 20 140 55 120 90 C150 120 110 160 80 130 C50 150 40 90 80 80 Z" fill="none" stroke="#c0392b" stroke-width="3.5"/></svg>
+          </div>
+          <div class="chips">
+            <span class="chip vision"><span class="dot"></span>XY vision</span>
+            <span class="chip manual"><span class="dot"></span>∠ manual</span>
+            <span class="chip manual"><span class="dot"></span>Z = 0.5″ typed</span>
+          </div>
+          <span class="note">Complete &amp; cuttable already — just low fidelity on Z.</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 2 -->
+        <div style="width:236px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">2 · Vision proposes targets</div>
+          <div class="canvas" style="height:160px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <div class="stock" style="width:46%;height:78%;transform:rotate(-4deg)"></div>
+            <svg viewBox="0 0 200 200" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg);width:44%;height:72%;overflow:visible">
+              <path d="M70 30 C110 20 140 55 120 90 C150 120 110 160 80 130 C50 150 40 90 80 80 Z" fill="none" stroke="#c0392b" stroke-width="3.5" opacity="0.5"/>
+              <g fill="none" stroke="#7d5411" stroke-width="2.5">
+                <circle cx="55" cy="50" r="7"/><circle cx="95" cy="45" r="7"/><circle cx="135" cy="60" r="7"/>
+                <circle cx="55" cy="95" r="7"/><circle cx="100" cy="100" r="7"/><circle cx="140" cy="105" r="7"/>
+                <circle cx="65" cy="140" r="7"/><circle cx="105" cy="145" r="7"/><circle cx="140" cy="140" r="7"/>
+              </g>
+            </svg>
+          </div>
+          <span class="note"><b>propose_z_targets</b> → 9-point lattice over the placed cut region, spaced off the cut lines (safe to touch).</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 3 -->
+        <div style="width:236px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">3 · Probe disposes</div>
+          <div class="canvas" style="height:160px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <div class="stock" style="width:46%;height:78%;transform:rotate(-4deg)"></div>
+            <svg viewBox="0 0 200 200" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg);width:44%;height:72%;overflow:visible">
+              <g stroke="#7d5411" stroke-width="2.5">
+                <circle cx="55" cy="50" r="7" fill="#7d5411"/><circle cx="95" cy="45" r="7" fill="#7d5411"/><circle cx="135" cy="60" r="7" fill="#7d5411"/>
+                <circle cx="55" cy="95" r="7" fill="#7d5411"/><circle cx="100" cy="100" r="7" fill="#7d5411"/><circle cx="140" cy="105" r="7" fill="none"/>
+                <circle cx="65" cy="140" r="7" fill="none"/><circle cx="105" cy="145" r="7" fill="none"/><circle cx="140" cy="140" r="7" fill="none"/>
+              </g>
+              <line x1="140" y1="105" x2="140" y2="70" stroke="#111" stroke-width="2"/><rect x="134" y="60" width="12" height="12" fill="#111"/>
+            </svg>
+          </div>
+          <div class="prog"><i style="width:56%"></i></div>
+          <span class="note"><b>z_mesh</b> strategy touches each point · sample 5 / 9 · z = −0.012″</span>
+        </div>
+
+        <div style="display:flex;align-items:center;font-size:26px;color:#a06f24">→</div>
+
+        <!-- stage 4 -->
+        <div style="width:236px;padding:0 12px;display:flex;flex-direction:column;gap:9px">
+          <div style="font-weight:700;font-size:13px">4 · Frame updated → warp</div>
+          <div class="canvas" style="height:160px;border:1.5px solid #2b2b2b;border-radius:6px;background:#ded8cb">
+            <div class="stock" style="width:46%;height:78%;transform:rotate(-4deg);background:linear-gradient(160deg,#d8c49b,#b89b66)"></div>
+            <svg viewBox="0 0 200 200" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg);width:44%;height:72%;overflow:visible">
+              <path d="M20 70 Q60 55 100 68 T180 66" fill="none" stroke="#7d5411" stroke-width="2" stroke-dasharray="4 3"/>
+              <path d="M20 110 Q60 98 100 108 T180 104" fill="none" stroke="#7d5411" stroke-width="2" stroke-dasharray="4 3"/>
+              <path d="M70 30 C110 20 140 55 120 90 C150 120 110 160 80 130 C50 150 40 90 80 80 Z" fill="none" stroke="#c0392b" stroke-width="3.5"/>
+            </svg>
+          </div>
+          <div class="chips">
+            <span class="chip vision"><span class="dot"></span>XY vision</span>
+            <span class="chip probe"><span class="dot"></span>Z mesh · probe</span>
+          </div>
+          <span class="note">Send (<b>s</b> / <b>C</b>) runs G-code through <b>warp_gcode_lines</b> → constant depth of cut.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3b frame inspector -->
+    <div class="dv-opt" id="3b">
+      <div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Workpiece-frame inspector — the panel that drives every strategy</div>
+      <div class="win" style="width:376px">
+        <div class="tbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttl">Workpiece frame</span></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div class="h" style="border:none;margin:0">Frame · one spine</div>
+            <span class="chip probe" style="border-style:solid"><span class="dot"></span>cuttable</span>
+          </div>
+
+          <div class="list">
+            <div style="padding:9px 11px;border-bottom:1px dashed #d5cfbf">
+              <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">X / Y origin</b><span class="chip vision"><span class="dot"></span>vision</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="note">4.81, 7.33 in · ±0.02</span><span class="btn sm">Probe edges</span></div>
+            </div>
+            <div style="padding:9px 11px;border-bottom:1px dashed #d5cfbf">
+              <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">In-plane angle</b><span class="chip manual"><span class="dot"></span>manual</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="note">−4.0° · from vision box</span><span class="btn sm">Probe 2 edges</span></div>
+            </div>
+            <div style="padding:9px 11px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">Z surface</b><span class="chip probe"><span class="dot"></span>mesh · probe</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="note">9 samples · −0.031 … +0.014</span><span style="display:flex;gap:6px"><span class="btn sm">Touch-off Z</span><span class="btn sm">Z-Mesh</span></span></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:9px;align-items:center;padding:9px 11px;border:1.5px dashed #b9b3a4;border-radius:6px;background:#f3f1ea">
+            <span style="font-size:20px;color:#a06f24">◑</span>
+            <span class="note" style="font-style:normal">Each value is independently sourced &amp; fidelity-tagged. Probing is optional — it only <b>raises</b> fidelity; nothing is ever on the critical path to a cut.</span>
+          </div>
+
+          <div style="display:flex;gap:12px;font-size:11px;color:#666;flex-wrap:wrap">
+            <span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:#1565c0"></span>vision</span>
+            <span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:#a9741a"></span>manual / typed</span>
+            <span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:#2e7d32"></span>probe (highest)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "build <a class="dv-oid" href="#3a">3a</a> hi-fi in Classical" · "add the edge-refine flow as its own storyboard" · "show target review before probing (accept / skip points)" · "put <a class="dv-oid" href="#3b">3b</a> into the main screen's right dock"</p>
+</section>
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Camera / calibration screen</span></div>
+  <p class="dv-sub">Where you point the camera, detect the ChArUco markers on the left &amp; right rails, enter the physical measurements, and confirm the bed→image homography before the overhead warp feeds the main workspace (<a class="dv-oid" href="#1a">1a</a>). Two takes: a diagnostic workbench and a guided wizard for varied-skill users.</p>
+  <div class="dv-opts">
+
+    <!-- 2a -->
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Detection workbench — raw feed + live overlay, measurements on the right</div>
+      <div class="win">
+        <div class="tbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttl">realWorldGcodeSender — Calibration</span></div>
+        <div class="tool">
+          <span class="btn"><span class="ico"></span>Camera: /dev/video0 ▾</span>
+          <span class="btn"><span class="ico c"></span>Recapture</span>
+          <span class="btn"><span class="ico c"></span>Live</span>
+          <span class="sep"></span>
+          <span class="btn">⟳ Detect markers</span>
+          <span class="btn">Camera cal…</span>
+          <span class="sep"></span>
+          <span class="btn">Reset</span>
+        </div>
+        <div class="row">
+          <div class="canvas" style="min-height:400px;background:#cfc9bc">
+            <span class="photohint">◎ Raw camera · angled view (need not be overhead)</span>
+            <svg viewBox="0 0 400 340" style="position:absolute;inset:0;width:100%;height:100%">
+              <!-- bed quad (perspective) -->
+              <polygon points="96,66 306,56 356,300 52,308" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="7 5"/>
+              <polygon points="96,66 306,56 356,300 52,308" fill="#c0392b" fill-opacity="0.07" stroke="none"/>
+              <text x="120" y="188" font-family="Kalam" font-size="13" fill="#7a2018">detected bed plane</text>
+              <!-- left rail box -->
+              <rect x="78" y="60" width="26" height="252" fill="none" stroke="#111" stroke-width="1.5" transform="rotate(-2 91 186)"/>
+              <!-- right rail box -->
+              <rect x="308" y="52" width="26" height="252" fill="none" stroke="#111" stroke-width="1.5" transform="rotate(2 321 178)"/>
+              <!-- left markers -->
+              <g font-family="Gaegu" font-size="9" fill="#fff" text-anchor="middle">
+                <rect x="82" y="70" width="17" height="17" fill="#333"/><text x="90" y="82">0</text>
+                <rect x="82" y="128" width="17" height="17" fill="#333"/><text x="90" y="140">1</text>
+                <rect x="81" y="186" width="17" height="17" fill="#333"/><text x="89" y="198">2</text>
+                <rect x="81" y="244" width="17" height="17" fill="#333"/><text x="89" y="256">3</text>
+              </g>
+              <!-- right markers -->
+              <g font-family="Gaegu" font-size="9" fill="#fff" text-anchor="middle">
+                <rect x="312" y="64" width="17" height="17" fill="#333"/><text x="320" y="76">33</text>
+                <rect x="313" y="122" width="17" height="17" fill="#333"/><text x="321" y="134">34</text>
+                <rect x="314" y="180" width="17" height="17" fill="#333"/><text x="322" y="192">35</text>
+                <rect x="315" y="238" width="17" height="17" fill="#333"/><text x="323" y="250">36</text>
+              </g>
+              <!-- touch plate marker on bed -->
+              <rect x="200" y="150" width="18" height="18" fill="none" stroke="#c0392b" stroke-width="2"/><text x="209" y="145" font-family="Gaegu" font-size="9" fill="#7a2018" text-anchor="middle">66</text>
+            </svg>
+          </div>
+          <div class="dock r" style="width:320px">
+            <div class="grp">
+              <div class="h">Detection</div>
+              <div class="list">
+                <div class="li"><span>Left rail markers</span><span>4 / 4 ✓</span></div>
+                <div class="li"><span>Right rail markers</span><span>4 / 4 ✓</span></div>
+                <div class="li"><span>Touch-plate (id 66)</span><span>found ✓</span></div>
+                <div class="li on"><span>Homography residual</span><span>0.6 px</span></div>
+              </div>
+              <span class="note">quality</span>
+              <div class="prog"><i style="width:82%"></i></div>
+            </div>
+            <div class="grp">
+              <div class="h">Physical setup <small>inches</small></div>
+              <div class="three">
+                <div class="fld"><label>Bed X</label><div class="inp">35</div></div>
+                <div class="fld"><label>Bed Y</label><div class="inp">35</div></div>
+                <div class="fld"><label>Bed Z</label><div class="inp">3.5</div></div>
+              </div>
+              <div class="fld"><label>ChArUco box width</label><div class="inp">0.706</div></div>
+            </div>
+            <div class="grp">
+              <div class="h">Left ref box</div>
+              <div class="three">
+                <div class="fld"><label>X</label><div class="inp">−1.0</div></div>
+                <div class="fld"><label>Y</label><div class="inp">0.0</div></div>
+                <div class="fld"><label>Z off</label><div class="inp">0.2</div></div>
+              </div>
+            </div>
+            <div class="grp">
+              <div class="h">Right ref box</div>
+              <div class="three">
+                <div class="fld"><label>X</label><div class="inp">36</div></div>
+                <div class="fld"><label>Y</label><div class="inp">0.0</div></div>
+                <div class="fld"><label>Z off</label><div class="inp">0.2</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="drawer" style="align-items:center">
+          <div style="flex:none">
+            <span class="note" style="display:block;margin-bottom:5px">Overhead-warp preview</span>
+            <div style="width:96px;height:96px;border:1.5px solid #2b2b2b;border-radius:5px;background:repeating-linear-gradient(115deg,#cbb892 0 10px,#c3ae86 10px 20px);position:relative">
+              <div style="position:absolute;inset:16px;border:2px solid #c0392b;border-radius:2px"></div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px">
+            <span style="font-size:13px">Homography solved for both rails. Overhead view looks square.</span>
+            <span class="note">Left &amp; right vertical homographies → bed-plane projection → any pixel maps to inches.</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;justify-content:center">
+            <span class="btn">Save config</span>
+            <span class="btn pri">✓ Accept &amp; open workspace</span>
+          </div>
+        </div>
+        <div class="status">
+          <span class="live">● Connected COM3</span><span>inches</span><span>Calibration: valid</span>
+          <span class="pill">ready</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2b -->
+    <div class="dv-opt" id="2b">
+      <div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Guided wizard — one step at a time for first-time setup</div>
+      <div class="win" style="width:1040px">
+        <div class="tbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttl">realWorldGcodeSender — Calibration wizard</span></div>
+        <div class="row">
+          <div class="dock" style="width:230px;background:#efece3;gap:6px">
+            <div class="h" style="margin-bottom:8px">Setup steps</div>
+            <div class="li" style="border:none;display:flex;gap:9px;align-items:center;padding:8px 6px"><span style="width:22px;height:22px;border-radius:50%;border:1.5px solid #2e7d32;background:#e6f2e6;display:flex;align-items:center;justify-content:center;font-size:12px">✓</span>1 · Choose camera</div>
+            <div class="li on" style="display:flex;gap:9px;align-items:center;padding:8px 6px;border-radius:5px"><span style="width:22px;height:22px;border-radius:50%;border:1.5px solid #c0392b;display:flex;align-items:center;justify-content:center;font-size:12px">2</span>Detect markers</div>
+            <div class="li" style="border:none;display:flex;gap:9px;align-items:center;padding:8px 6px"><span style="width:22px;height:22px;border-radius:50%;border:1.5px solid #999;display:flex;align-items:center;justify-content:center;font-size:12px">3</span>Measure bed &amp; rails</div>
+            <div class="li" style="border:none;display:flex;gap:9px;align-items:center;padding:8px 6px"><span style="width:22px;height:22px;border-radius:50%;border:1.5px solid #999;display:flex;align-items:center;justify-content:center;font-size:12px">4</span>Verify overhead</div>
+            <div class="li" style="border:none;display:flex;gap:9px;align-items:center;padding:8px 6px"><span style="width:22px;height:22px;border-radius:50%;border:1.5px solid #999;display:flex;align-items:center;justify-content:center;font-size:12px">5</span>Save &amp; finish</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+            <div style="padding:16px 22px 6px">
+              <div style="font-size:20px;font-weight:700">Step 2 — Detect the rail markers</div>
+              <div class="note" style="font-style:normal;font-size:12.5px">Aim the camera so the ChArUco strips on both vertical rails are fully visible, then press Detect.</div>
+            </div>
+            <div class="canvas" style="min-height:320px;margin:0 22px;border:1.5px solid #2b2b2b;border-radius:6px;background:#cfc9bc">
+              <span class="photohint">◎ Live feed</span>
+              <svg viewBox="0 0 400 300" style="position:absolute;inset:0;width:100%;height:100%">
+                <polygon points="96,50 306,44 350,270 56,278" fill="#c0392b" fill-opacity="0.07" stroke="#111" stroke-width="2" stroke-dasharray="7 5"/>
+                <rect x="80" y="48" width="24" height="224" fill="none" stroke="#111" stroke-width="1.5"/>
+                <rect x="306" y="44" width="24" height="224" fill="none" stroke="#111" stroke-width="1.5"/>
+                <g font-family="Gaegu" font-size="9" fill="#fff" text-anchor="middle">
+                  <rect x="83" y="58" width="17" height="17" fill="#333"/><text x="91" y="70">0</text>
+                  <rect x="83" y="120" width="17" height="17" fill="#333"/><text x="91" y="132">1</text>
+                  <rect x="83" y="182" width="17" height="17" fill="#333"/><text x="91" y="194">2</text>
+                  <rect x="309" y="54" width="17" height="17" fill="#333"/><text x="317" y="66">33</text>
+                  <rect x="309" y="116" width="17" height="17" fill="#333"/><text x="317" y="128">34</text>
+                  <rect x="309" y="178" width="17" height="17" fill="#333"/><text x="317" y="190">35</text>
+                </g>
+              </svg>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:12px 22px">
+              <span class="btn">⟳ Detect markers</span>
+              <span style="font-size:13px;color:#2e7d32">✓ 4 left · 4 right · touch-plate found</span>
+              <span style="margin-left:auto" class="btn">‹ Back</span>
+              <span class="btn pri">Next: measure ›</span>
+            </div>
+          </div>
+        </div>
+        <div class="status">
+          <span class="live">● Connected COM3</span><span>Step 2 of 5</span>
+          <span class="pill">detecting…</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "build <a class="dv-oid" href="#2a">2a</a> hi-fi in Classical" · "add a camera-intrinsics calibration step to <a class="dv-oid" href="#2b">2b</a>" · "show the marker-not-found error state" · "wireframe the probing flow"</p>
+</section>
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Qt CAM main-screen layouts</span></div>
+  <p class="dv-sub">Three takes on the classic docked-panel CAM window: the bed photo + G-code overlay stays center, controls arrange around it differently. Everything's a placeholder — I'm testing structure &amp; flow, not looks. Point me at the one that feels right and I'll build it hi-fi in the Classical style.</p>
+  <div class="dv-opts">
+
+    <!-- 1a -->
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Dual dock — job on the left, machine &amp; probe on the right</div>
+      <div class="win">
+        <div class="tbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttl">realWorldGcodeSender — puzzles2.svg</span></div>
+        <div class="menu"><span>File</span><span>Edit</span><span>View</span><span>Machine</span><span>Probe</span><span>Help</span></div>
+        <div class="tool">
+          <span class="btn"><span class="ico"></span>Open</span>
+          <span class="btn"><span class="ico"></span>Import SVG</span>
+          <span class="sep"></span>
+          <span class="btn"><span class="ico c"></span>Recapture</span>
+          <span class="btn"><span class="ico c"></span>Live</span>
+          <span class="sep"></span>
+          <span class="btn">Touch-off Z</span>
+          <span class="btn">Z-Mesh</span>
+          <span class="btn">Edge refine</span>
+          <span class="sep"></span>
+          <span class="btn pri">▶ Send</span>
+          <span class="btn warn">⏸ Hold</span>
+          <span class="btn warn">▮ Resume</span>
+          <span class="btn warn">⚠ Kill</span>
+          <span class="btn">⌂ Home</span>
+        </div>
+        <div class="row">
+          <div class="dock">
+            <div class="grp">
+              <div class="h">Job &amp; Paths</div>
+              <div class="tabs"><span class="tab on">SVG</span><span class="tab">G-code</span></div>
+              <div class="fld"><label>Source file</label><div class="inp">puzzles2.svg</div></div>
+            </div>
+            <div class="grp">
+              <div class="h">Cut parameters</div>
+              <div class="two">
+                <div class="fld"><label>Thickness</label><div class="inp">0.5 in</div></div>
+                <div class="fld"><label>Cutter ⌀</label><div class="inp">0.125</div></div>
+                <div class="fld"><label>Feed</label><div class="inp">60 ipm</div></div>
+                <div class="fld"><label>Depth/pass</label><div class="inp">0.1</div></div>
+                <div class="fld"><label>Safe Z</label><div class="inp">0.25</div></div>
+                <div class="fld"><label>Tab ht</label><div class="inp">0.08</div></div>
+              </div>
+            </div>
+            <div class="grp">
+              <div class="h">Paths <small>18</small></div>
+              <div class="list">
+                <div class="li on">All paths</div>
+                <div class="li"><span>hole · owl 1</span><span>◌</span></div>
+                <div class="li"><span>hole · owl 2</span><span>◌</span></div>
+                <div class="li"><span>outline · panel</span><span>◌</span></div>
+                <div class="li"><span>+ 15 more…</span><span></span></div>
+              </div>
+              <span class="note">click bed to place · right-drag to rotate</span>
+            </div>
+          </div>
+
+          <div class="canvas">
+            <span class="photohint">◉ Still capture · cnc13.jpg</span>
+            <div class="stock"></div>
+            <span class="clamp" style="left:20%;top:14%"></span>
+            <span class="clamp" style="right:16%;top:26%"></span>
+            <span class="clamp" style="left:24%;bottom:14%"></span>
+            <span class="clamp" style="right:22%;bottom:18%"></span>
+            <svg viewBox="0 0 400 400" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg);width:52%;height:74%;overflow:visible">
+              <path d="M120 40 C180 20 240 60 210 110 C260 130 250 200 190 190 C210 250 150 260 140 210 C90 240 70 170 130 160 C90 110 150 60 120 40 Z" fill="none" stroke="#c0392b" stroke-width="4"/>
+              <path d="M120 40 L210 110 L190 190 L140 210 L130 160 Z" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="6 5"/>
+            </svg>
+          </div>
+
+          <div class="dock r">
+            <div class="grp">
+              <div class="h">Position <small>WCS · in</small></div>
+              <div class="dro">
+                <div class="droline"><span>X</span><span>4.812</span></div>
+                <div class="droline"><span>Y</span><span>7.335</span></div>
+                <div class="droline"><span>Z</span><span>0.000</span></div>
+              </div>
+              <span class="note">clicked point: 5.10, 8.24 in</span>
+            </div>
+            <div class="grp">
+              <div class="h">Workpiece frame</div>
+              <div class="chips">
+                <span class="chip vision"><span class="dot"></span>XY · vision</span>
+                <span class="chip manual"><span class="dot"></span>angle · manual</span>
+                <span class="chip probe"><span class="dot"></span>Z · probe</span>
+              </div>
+            </div>
+            <div class="grp">
+              <div class="h">Probe</div>
+              <div class="two">
+                <span class="btn sm">Touch-off Z</span>
+                <span class="btn sm">Z-Mesh</span>
+                <span class="btn sm">Edge refine</span>
+                <span class="btn sm">XYZ plate</span>
+              </div>
+            </div>
+            <div class="grp">
+              <div class="h">Jog</div>
+              <div class="jog">
+                <span class="jogb"></span><span class="jogb">↑</span><span class="jogb"></span>
+                <span class="jogb">←</span><span class="jogb mid">Z↑↓</span><span class="jogb">→</span>
+                <span class="jogb"></span><span class="jogb">↓</span><span class="jogb"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="console">
+          <div><span class="cmd">&gt;</span> Probing 9-point Z mesh…</div>
+          <div>[ok] sample 5/9  z=-0.012</div>
+          <div><span class="cmd">&gt;</span> _</div>
+        </div>
+        <div class="status">
+          <span class="live">● Connected COM3</span><span>inches</span><span>Job: line 0 / 1,204</span>
+          <span style="flex:1;max-width:180px" class="prog"><i></i></span>
+          <span class="pill">idle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1b -->
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Mode rail — one contextual inspector that swaps by task</div>
+      <div class="win">
+        <div class="tbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttl">realWorldGcodeSender — puzzles2.svg</span></div>
+        <div class="tool">
+          <span class="btn"><span class="ico"></span>Open</span>
+          <span class="btn"><span class="ico c"></span>Recapture</span>
+          <span class="btn"><span class="ico c"></span>Live</span>
+          <span class="sep"></span>
+          <span class="btn pri">▶ Send</span>
+          <span class="btn warn">⏸ Hold</span>
+          <span class="btn warn">▮ Resume</span>
+          <span class="btn warn">⚠ Kill</span>
+          <span class="btn">⌂ Home</span>
+          <span class="sep"></span>
+          <span style="margin-left:auto" class="chip vision"><span class="dot"></span>XY vision</span>
+          <span class="chip probe"><span class="dot"></span>Z probe</span>
+        </div>
+        <div class="row">
+          <div class="rail">
+            <div class="railb"><span class="ico c"></span>Setup</div>
+            <div class="railb on"><span class="ico"></span>Job</div>
+            <div class="railb"><span class="ico"></span>Probe</div>
+            <div class="railb"><span class="ico c"></span>Run</div>
+            <div class="railb" style="margin-top:auto"><span class="ico"></span>Config</div>
+          </div>
+          <div class="canvas">
+            <span class="photohint">◉ Live feed · 30fps</span>
+            <div class="stock"></div>
+            <span class="clamp" style="left:22%;top:16%"></span>
+            <span class="clamp" style="right:18%;bottom:20%"></span>
+            <svg viewBox="0 0 400 400" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg);width:52%;height:74%;overflow:visible">
+              <path d="M120 40 C180 20 240 60 210 110 C260 130 250 200 190 190 C210 250 150 260 140 210 C90 240 70 170 130 160 C90 110 150 60 120 40 Z" fill="none" stroke="#c0392b" stroke-width="4"/>
+              <path d="M120 40 L210 110 L190 190 L140 210 L130 160 Z" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="6 5"/>
+            </svg>
+          </div>
+          <div class="dock r" style="width:288px">
+            <div class="h">Job <small>context: Job mode</small></div>
+            <div class="tabs"><span class="tab on">SVG</span><span class="tab">G-code</span></div>
+            <div class="fld"><label>Source file</label><div class="inp">puzzles2.svg</div></div>
+            <div class="grp">
+              <div class="three">
+                <div class="fld"><label>Thick</label><div class="inp">0.5</div></div>
+                <div class="fld"><label>Cutter</label><div class="inp">.125</div></div>
+                <div class="fld"><label>Feed</label><div class="inp">60</div></div>
+                <div class="fld"><label>Dep/ps</label><div class="inp">0.1</div></div>
+                <div class="fld"><label>Safe Z</label><div class="inp">0.25</div></div>
+                <div class="fld"><label>Tab</label><div class="inp">.08</div></div>
+              </div>
+            </div>
+            <div class="grp">
+              <div class="h">Placement</div>
+              <div class="two">
+                <div class="fld"><label>X offset</label><div class="inp">4.81 in</div></div>
+                <div class="fld"><label>Y offset</label><div class="inp">7.33 in</div></div>
+              </div>
+              <div class="fld"><label>Rotation</label><div class="inp">−4.0°</div></div>
+              <span class="note">or click / right-drag on the bed</span>
+            </div>
+            <div class="grp">
+              <div class="h">Paths <small>18 · all selected</small></div>
+              <div class="list">
+                <div class="li on">All paths</div>
+                <div class="li"><span>hole · owl 1</span><span>◌</span></div>
+                <div class="li"><span>outline · panel</span><span>◌</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="status">
+          <span class="live">● Connected COM3</span><span>inches</span><span>Job: line 0 / 1,204</span>
+          <span style="flex:1;max-width:180px" class="prog"><i></i></span>
+          <span class="pill">idle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1c -->
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Canvas-forward — thin status strip, jog + console in a bottom drawer</div>
+      <div class="win">
+        <div class="tbar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="ttl">realWorldGcodeSender — puzzles2.svg</span></div>
+        <div class="tool">
+          <span class="btn"><span class="ico"></span>Open</span>
+          <span class="btn"><span class="ico"></span>Import SVG</span>
+          <span class="btn"><span class="ico c"></span>Recapture</span>
+          <span class="btn"><span class="ico c"></span>Live</span>
+          <span class="sep"></span>
+          <span class="btn">Touch-off Z</span>
+          <span class="btn">Z-Mesh</span>
+          <span class="btn">Edge</span>
+          <span class="sep"></span>
+          <span class="btn pri">▶ Send</span>
+          <span class="btn warn">⏸ Hold</span>
+          <span class="btn warn">▮ Resume</span>
+          <span class="btn warn">⚠ Kill</span>
+          <span class="btn">⌂ Home</span>
+        </div>
+        <div class="row">
+          <div class="canvas" style="min-height:360px">
+            <span class="photohint">◉ Still capture · click bed for X/Y readout</span>
+            <div class="stock"></div>
+            <span class="clamp" style="left:20%;top:14%"></span>
+            <span class="clamp" style="right:16%;top:26%"></span>
+            <span class="clamp" style="left:24%;bottom:14%"></span>
+            <svg viewBox="0 0 400 400" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-4deg);width:50%;height:72%;overflow:visible">
+              <path d="M120 40 C180 20 240 60 210 110 C260 130 250 200 190 190 C210 250 150 260 140 210 C90 240 70 170 130 160 C90 110 150 60 120 40 Z" fill="none" stroke="#c0392b" stroke-width="4"/>
+              <path d="M120 40 L210 110 L190 190 L140 210 L130 160 Z" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="6 5"/>
+            </svg>
+          </div>
+          <div class="strip">
+            <div class="dro">
+              <div class="droline"><span>X</span><span>4.81</span></div>
+              <div class="droline"><span>Y</span><span>7.33</span></div>
+              <div class="droline"><span>Z</span><span>0.00</span></div>
+            </div>
+            <div class="grp">
+              <div class="h" style="font-size:12px">Frame</div>
+              <div class="chips">
+                <span class="chip vision"><span class="dot"></span>XY vision</span>
+                <span class="chip probe"><span class="dot"></span>Z probe</span>
+                <span class="chip manual"><span class="dot"></span>∠ manual</span>
+              </div>
+            </div>
+            <div class="grp">
+              <div class="h" style="font-size:12px">Cut params</div>
+              <div class="fld"><label>Thickness</label><div class="inp">0.5 in</div></div>
+              <div class="fld"><label>Feed / pass</label><div class="inp">60 · 0.1</div></div>
+            </div>
+            <span class="note">Job: line 0 / 1,204</span>
+            <div class="prog"><i></i></div>
+          </div>
+        </div>
+        <div class="drawer">
+          <div style="flex:none">
+            <div class="h" style="font-size:12px;border:none;margin-bottom:7px">Jog</div>
+            <div class="jog">
+              <span class="jogb"></span><span class="jogb">↑</span><span class="jogb"></span>
+              <span class="jogb">←</span><span class="jogb mid">Z</span><span class="jogb">→</span>
+              <span class="jogb"></span><span class="jogb">↓</span><span class="jogb"></span>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <div class="h" style="font-size:12px;border:none;margin-bottom:7px">Console</div>
+            <div class="console" style="border:1.5px solid #2b2b2b;border-radius:6px;flex:1">
+              <div><span class="cmd">&gt;</span> Probing 9-point Z mesh…</div>
+              <div>[ok] sample 5/9  z=-0.012</div>
+              <div><span class="cmd">&gt;</span> _</div>
+            </div>
+          </div>
+        </div>
+        <div class="status">
+          <span class="live">● Connected COM3</span><span>inches</span>
+          <span class="pill">idle</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "go hi-fi on <a class="dv-oid" href="#1a">1a</a> in the Classical style" · "combine <a class="dv-oid" href="#1a">1a</a>'s docks with <a class="dv-oid" href="#1b">1b</a>'s mode rail" · "wireframe the probing flow / calibration screen" · "show the live-camera + calibration state"</p>
+</section>
+</x-dc>
+</body>
+</html>

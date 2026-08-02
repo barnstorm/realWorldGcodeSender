@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/classical-0afd9443-6143-4445-99c4-b7b9b0181587/styles.css">
+<script src="_ds/classical-0afd9443-6143-4445-99c4-b7b9b0181587/_ds_bundle.js"></script>
+<style>
+  body{margin:0;background:#d8d5cf;font-family:var(--font-body);
+    display:flex;justify-content:center;padding:26px;min-height:100vh}
+  .num{font-family:var(--font-heading);font-feature-settings:"tnum";letter-spacing:.01em}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-feature-settings:"tnum"}
+  .mi{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;
+    stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .tbtn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+    font-family:var(--font-heading);font-weight:600;font-size:13.5px;color:var(--color-text);
+    background:transparent;border:1px solid var(--color-divider);
+    padding:7px 12px;border-radius:var(--radius-md);white-space:nowrap}
+  .tbtn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent)}
+  .tbtn.pri{color:var(--color-accent);border-color:var(--color-accent)}
+  .tbtn.pri:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
+  .wtab{display:inline-flex;align-items:center;gap:8px;height:100%;font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--color-neutral-600);text-decoration:none;border-bottom:2px solid transparent}
+  .wtab:hover{color:var(--color-text);border-bottom-color:var(--color-neutral-400)}
+  .wtab[aria-current]{color:var(--color-text);border-bottom-color:var(--color-accent)}
+  .wtab[aria-current]:hover{border-bottom-color:var(--color-accent)}
+</style>
+</helmet>
+
+<div style="width:1300px;height:824px;display:flex;flex-direction:column;background:var(--color-bg);border:1px solid var(--color-neutral-400);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden">
+
+  <!-- title bar -->
+  <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="margin-left:12px;font-family:var(--font-heading);font-weight:600;font-size:16px">realWorldGcodeSender</span>
+    <span style="font-size:13px;color:var(--color-neutral-600);font-style:italic">— Calibration</span>
+    <span style="margin-left:auto;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">Bed → image homography</span>
+  </div>
+
+  <!-- menu bar -->
+  <div style="display:flex;gap:26px;height:32px;align-items:center;padding:0 18px;border-bottom:1px solid var(--color-divider);font-size:13.5px;color:var(--color-neutral-800)">
+    <span>File</span><span>Edit</span><span>View</span><span>Machine</span><span>Probe</span><span>Help</span>
+  </div>
+
+  <!-- workspace tabs -->
+  <div style="display:flex;gap:28px;align-items:stretch;height:40px;padding:0 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg)">
+    <a class="wtab" aria-current="page" href="QtUI%20Calibration%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/></svg>Calibration</a>
+    <a class="wtab" href="QtUI%20Main%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg>Workspace</a>
+    <a class="wtab" href="QtUI%20Machine%20Control%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>Machine</a>
+    <a class="wtab" href="QtUI%20Settings%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Settings</a>
+  </div>
+
+  <!-- toolbar -->
+  <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-neutral-100)">
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/></svg>Camera: /dev/video0<svg class="mi" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m6 9 6 6 6-6"/></svg></button>
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.8L3 8"/><path d="M3 3v5h5"/></svg>Recapture</button>
+    <div class="seg" style="margin:0">
+      <label class="seg-opt" style="color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)"><svg class="mi" viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4Z"/></svg>Still</label>
+      <label class="seg-opt"><svg class="mi" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>Live</label>
+    </div>
+    <span style="width:1px;height:24px;background:var(--color-divider);margin:0 3px"></span>
+    <button class="tbtn pri"><svg class="mi" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>Detect markers</button>
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Camera calibration…</button>
+    <span style="width:1px;height:24px;background:var(--color-divider);margin:0 3px"></span>
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M3 2v6h6M3 8a9 9 0 1 1-2 5"/></svg>Reset</button>
+  </div>
+
+  <!-- body -->
+  <div style="flex:1;display:flex;min-height:0">
+
+    <!-- CENTER: raw feed + detection overlay -->
+    <main style="flex:1;min-width:0;background:var(--color-neutral-200);display:flex;flex-direction:column">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:12px 20px 0">
+        <div class="card-kicker" style="display:flex;align-items:center;gap:7px"><svg class="mi" viewBox="0 0 24 24" style="width:13px;height:13px;stroke:var(--color-accent)"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4Z"/></svg>Raw camera · angled view (need not be overhead)</div>
+        <div style="font-size:12px;color:var(--color-neutral-700)">4096 × 3072 · <span class="num" style="color:var(--color-accent-800)">2 rails detected</span></div>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px 20px 20px">
+        <figure class="plate" style="height:100%;aspect-ratio:4/3;min-height:0;margin:0;position:relative;box-shadow:var(--shadow-md);line-height:0">
+          <img src="ref/cnc13.jpg" alt="Raw CNC bed camera view" style="width:100%;height:100%;object-fit:cover;display:block">
+          <svg viewBox="0 0 400 300" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+            <!-- detected bed plane -->
+            <polygon points="74,16 330,10 352,278 62,286" fill="#b68235" fill-opacity="0.10" stroke="#7d5411" stroke-width="1.6" stroke-dasharray="7 5"/>
+            <text x="150" y="150" font-family="Cormorant Garamond" font-size="13" font-weight="600" fill="#5a3b0a">bed plane</text>
+            <!-- left rail box -->
+            <rect x="26" y="112" width="30" height="132" fill="none" stroke="#b68235" stroke-width="1.6" transform="rotate(-1 41 178)"/>
+            <!-- right rail box -->
+            <rect x="342" y="110" width="28" height="140" fill="none" stroke="#b68235" stroke-width="1.6" transform="rotate(1 356 180)"/>
+            <!-- left markers -->
+            <g font-family="ui-monospace,monospace" font-size="8" fill="#fff" text-anchor="middle">
+              <rect x="30" y="120" width="19" height="19" fill="#7d5411"/><text x="39.5" y="133">33</text>
+              <rect x="30" y="152" width="19" height="19" fill="#7d5411"/><text x="39.5" y="165">34</text>
+              <rect x="30" y="184" width="19" height="19" fill="#7d5411"/><text x="39.5" y="197">35</text>
+              <rect x="30" y="216" width="19" height="19" fill="#7d5411"/><text x="39.5" y="229">36</text>
+            </g>
+            <!-- right markers -->
+            <g font-family="ui-monospace,monospace" font-size="8" fill="#fff" text-anchor="middle">
+              <rect x="347" y="118" width="19" height="19" fill="#7d5411"/><text x="356.5" y="131">0</text>
+              <rect x="347" y="150" width="19" height="19" fill="#7d5411"/><text x="356.5" y="163">1</text>
+              <rect x="347" y="182" width="19" height="19" fill="#7d5411"/><text x="356.5" y="195">2</text>
+              <rect x="347" y="214" width="19" height="19" fill="#7d5411"/><text x="356.5" y="227">3</text>
+            </g>
+            <!-- touch-plate marker on stock -->
+            <rect x="205" y="52" width="20" height="20" fill="none" stroke="#c0392b" stroke-width="2"/>
+            <text x="215" y="46" font-family="ui-monospace,monospace" font-size="9" fill="#7a2018" text-anchor="middle">id 66</text>
+          </svg>
+        </figure>
+      </div>
+    </main>
+
+    <!-- RIGHT DOCK -->
+    <aside style="width:340px;flex:none;border-left:1px solid var(--color-divider);background:var(--color-neutral-100);padding:18px;display:flex;flex-direction:column;gap:20px;overflow:auto">
+      <section style="display:flex;flex-direction:column;gap:10px">
+        <h6 style="margin:0;padding-bottom:6px;border-bottom:1px solid var(--color-text)">Detection</h6>
+        <table class="table" style="font-size:13px">
+          <tbody>
+            <tr><td style="padding:6px 4px">Left rail markers</td><td style="padding:6px 4px;text-align:right"><span class="tag tag-accent">4 / 4</span></td></tr>
+            <tr><td style="padding:6px 4px">Right rail markers</td><td style="padding:6px 4px;text-align:right"><span class="tag tag-accent">4 / 4</span></td></tr>
+            <tr><td style="padding:6px 4px">Touch-plate · id 66</td><td style="padding:6px 4px;text-align:right"><span class="tag tag-outline">found</span></td></tr>
+            <tr><td style="padding:6px 4px">Homography residual</td><td style="padding:6px 4px;text-align:right"><span class="num" style="color:var(--color-accent-800)">0.6 px</span></td></tr>
+          </tbody>
+        </table>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Quality</span>
+          <span style="flex:1;height:6px;border:1px solid var(--color-neutral-400);border-radius:6px;overflow:hidden;display:inline-block"><span style="display:block;height:100%;width:84%;background:var(--color-accent)"></span></span>
+          <span class="num" style="font-size:13px;color:var(--color-accent-800)">good</span>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:11px">
+        <h6 style="margin:0;padding-bottom:6px;border-bottom:1px solid var(--color-text);display:flex;justify-content:space-between;align-items:baseline">Physical setup<span style="font-family:var(--font-body);font-size:11px;text-transform:none;letter-spacing:0;color:var(--color-neutral-600)">inches</span></h6>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>Bed X</label><div class="input num">35.0</div></div>
+          <div class="field"><label>Bed Y</label><div class="input num">35.0</div></div>
+          <div class="field"><label>Bed Z</label><div class="input num">3.5</div></div>
+        </div>
+        <div class="field"><label>ChArUco box width</label><div class="input num">0.706</div></div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:10px">
+        <h6 style="margin:0;padding-bottom:6px;border-bottom:1px solid var(--color-text)">Left reference box</h6>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>X pos</label><div class="input num">−1.0</div></div>
+          <div class="field"><label>Y pos</label><div class="input num">0.0</div></div>
+          <div class="field"><label>Z offset</label><div class="input num">0.20</div></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:10px">
+        <h6 style="margin:0;padding-bottom:6px;border-bottom:1px solid var(--color-text)">Right reference box</h6>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>X pos</label><div class="input num">36.0</div></div>
+          <div class="field"><label>Y pos</label><div class="input num">0.0</div></div>
+          <div class="field"><label>Z offset</label><div class="input num">0.20</div></div>
+        </div>
+        <p style="margin:2px 0 0;font-size:11.5px;font-style:italic;color:var(--color-neutral-600)">Measured to the marker origin on each vertical rail.</p>
+      </section>
+    </aside>
+  </div>
+
+  <!-- bottom action drawer -->
+  <div style="flex:none;border-top:1px solid var(--color-divider);background:var(--color-neutral-100);padding:14px 18px;display:flex;align-items:center;gap:22px">
+    <figure class="plate" style="margin:0;height:104px;box-shadow:var(--shadow-sm)">
+      <img src="ref/cutPath.png" alt="Overhead warp preview" style="height:104px;width:auto;object-fit:contain;display:block">
+    </figure>
+    <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:18px">Overhead warp — both rail homographies solved</div>
+      <p style="margin:0;font-size:13px;color:var(--color-neutral-700);max-width:560px">Left &amp; right vertical homographies project onto the bed plane, so every pixel maps to a real X / Y location in inches. The square overhead view feeds the main workspace.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <button class="tbtn">Save to config.json</button>
+      <button class="tbtn pri"><svg class="mi" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Accept &amp; open workspace</button>
+    </div>
+  </div>
+
+  <!-- status bar -->
+  <div style="display:flex;align-items:center;gap:20px;height:34px;flex:none;padding:0 18px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-700)">
+    <span style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 22%,transparent)"></span>Connected · COM3</span>
+    <span>inches</span>
+    <span>Calibration <span class="num" style="color:var(--color-accent-800)">valid</span></span>
+    <span style="margin-left:auto;font-family:var(--font-heading);font-weight:600;letter-spacing:.05em;color:var(--color-neutral-800)">READY</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

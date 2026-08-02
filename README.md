@@ -3,6 +3,18 @@ This program provides a cut preview of your GCODE, where it will cut, by simply 
 I spend so much time trying to line up the machine with my work piece, making sure it won't intersect my clamps.
 Sometimes I hit my clamps, sometimes my bit goes off the workpiece or hits a soft limit, stopping my cut process.
 
+## Native Qt UI
+
+Install `requirements.txt`, then start the hardware-optional desktop UI:
+
+```powershell
+python qt_main.py puzzles2.svg
+```
+
+Add `--sender` to connect to the configured GRBL controller. SVG loading and
+multi-pass G-code generation are provided by the in-repository `svgToGCode.py`;
+no sibling checkout is required.
+
 ![Cut Path](cutPath.PNG)
 
 # Caviots

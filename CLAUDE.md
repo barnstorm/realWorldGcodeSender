@@ -14,7 +14,7 @@ This is a Python-based CNC G-code sender application that provides visual cut pr
 - **svgpathtools**: SVG path processing and manipulation
 - **pygcode**: G-code parsing and machine state simulation
 - **pyserial**: Serial communication with CNC controller
-- **svgToGCode** (local dependency in ../svgToGCode/): Custom SVG to G-code conversion
+- **svgToGCode.py**: In-repository SVG path loading and bounded multi-pass G-code generation
 
 ## Architecture & Core Components
 

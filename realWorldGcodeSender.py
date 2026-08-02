@@ -20,9 +20,6 @@ from pygcode.gcodes import MODAL_GROUP_MAP
 import re
 
 import sys
-#sys.path.insert(1, 'C:\\Git\\gerbil\\')
-#sys.path.insert(1, 'C:\\Git\\gcode_machine\\')
-sys.path.insert(1, '../svgToGCode/')
 from svgToGCode import cncPathsClass
 from svgToGCode import cncGcodeGeneratorClass
 from svgToGCode import Point3D
@@ -35,6 +32,13 @@ import threading
 import functools
 import queue
 import traceback
+
+# Workpiece-frame + probing seam (PROBING_DESIGN.md): pure modules, no hardware deps
+from workpiece_frame import Measured, Source, WorkpieceFrame, ZSurface
+from probing.base import get_strategy
+from probing.targets import propose_z_targets
+import probing.strategies  # noqa: F401  (registers z_touch_off / z_mesh / edge_refine)
+from toolpath_warp import warp_gcode_lines
 
 # Import configuration system
 from app_config import get_config
@@ -53,13 +57,36 @@ materialThickness = config.cutting_parameters.material_thickness
 cutterDiameter = config.cutting_parameters.cutter_diameter
 bedViewSizePixels = config.vision_settings.bed_view_size_pixels
 
+
+def refresh_config_globals():
+    """Refresh legacy module globals after the shared config is edited.
+
+    The original application reads these names throughout its vision and send
+    pipeline.  Keeping this small compatibility seam lets the Qt settings view
+    apply changes without restarting or duplicating the derived-value math.
+    """
+    global config, boxWidth, bedSize, rightBoxRef, leftBoxRef
+    global rightSlope, leftSlope, materialThickness, cutterDiameter
+    global bedViewSizePixels
+
+    config = get_config()
+    boxWidth = config.physical_setup.box_width
+    bedSize = config.get_bed_size()
+    rightBoxRef = config.get_right_box_ref()
+    leftBoxRef = config.get_left_box_ref()
+    rightSlope = config.get_right_slope()
+    leftSlope = config.get_left_slope()
+    materialThickness = config.cutting_parameters.material_thickness
+    cutterDiameter = config.cutting_parameters.cutter_diameter
+    bedViewSizePixels = config.vision_settings.bed_view_size_pixels
+
 #First ID is upper right, which is most positive Z and most positice Y
 # Z, Y
 global idToLocDict
 idToLocDict = {0 :[2,21],
                1 :[2,19],
                2 :[2,17],
-               3 :[2,16],
+               3 :[2,15],
                4 :[2,13],
                5 :[2,11],
                6 :[2, 9],
@@ -288,6 +315,10 @@ class OverlayGcode:
         self.refPlateMeasuredLoc = [0.0, 0.0]
         self.camRefCenter = [0.0, 0.0]
 
+        # Workpiece frame (PROBING_DESIGN.md): set by 'z' touch-off, mesh
+        # samples added by 'Z'; send paths warp cut Z to follow it when present.
+        self.workpieceFrame = None
+
         fig, ax = plt.subplots()
         fig.tight_layout()
         plt.subplots_adjust(bottom=0.01, right = 0.99)
@@ -295,6 +326,12 @@ class OverlayGcode:
         plt.rcParams['keymap.back'].remove('c') # we use c for circle
         plt.rcParams['keymap.save'].remove('s') # we use s for send
         plt.rcParams['keymap.pan'].remove('p') # we use s for send
+        if 'r' in plt.rcParams['keymap.home']:
+            plt.rcParams['keymap.home'].remove('r') # we use r for resume after feed hold
+        if 'h' in plt.rcParams['keymap.home']:
+            plt.rcParams['keymap.home'].remove('h') # we use h to home the machine
+        if 'g' in plt.rcParams['keymap.grid']:
+            plt.rcParams['keymap.grid'].remove('g') # we use g to send a g code file
         #Generate matplotlib plot from opencv image
         self.matPlotImage = plt.imshow(self.cv2Overhead)
         ###############################################
@@ -589,8 +626,35 @@ class OverlayGcode:
       print(self.bedViewSizePixels)
       return self._pixel_to_inches(self.mouseX, self.mouseY)
 
+    def _workCoordPaths(self):
+        """Current cut paths as (x, y) polylines in the work coordinates the
+        send paths will emit them in. Used to propose probe targets."""
+        paths = []
+        if self.drawnPoints:
+            # 'C' sends drawn points offset by the workspace zero
+            rx, ry = self.refPlateMeasuredLoc[0], self.refPlateMeasuredLoc[1]
+            paths.append([(p.X - rx, p.Y - ry) for p in self.drawnPoints])
+        if self.svgFile is not None:
+            # mirror the transforms 's' applies before send_svf
+            rotation = self.rotation * math.pi / 180
+            origin = [self.pathOffsets[-1][0], self.pathOffsets[-1][1]]
+            for path, offset in zip(self.cncPaths.cncPaths, self.pathOffsets):
+                pts = deepcopy(path.points3D)
+                self.offsetPoints(pts, offset[0], offset[1])
+                self.rotatePoints(pts, origin, rotation)
+                paths.append([(p.X, p.Y) for p in pts])
+        elif self.gCodeFile is not None and self.points:
+            # file coords; the controller applies the G54/G68 placement
+            paths.append([(p.X, p.Y) for p in self.points])
+        return paths
+
     def onkeypress(self, event):
-        x, y = self._mouse_pos_inches()
+        try:
+            x, y = self._mouse_pos_inches()
+        except (TypeError, AttributeError):
+            # mouse is off the canvas (or never entered it); keys that need a
+            # position check for None below -- recovery keys must still work
+            x, y = None, None
         print(event.key)
         # if sending a g code file
         if   event.key == 'g':
@@ -615,13 +679,25 @@ class OverlayGcode:
             #self.cncPaths.addTabs()
             #self.cncPaths.ModifyPointsFromTabLocations()
 
-            self.sender.run_async('send_svf', self.sender.send_svf, self.cncPaths)
+            self.sender.run_async('send_svf', self.sender.send_svf,
+                                  self.cncPaths, self.workpieceFrame)
+        # select next/previous svg path (-1 selects all paths)
         elif event.key == 'n':
-            self.pathIndex = self.pathIndex + 1
+            if self.svgFile is not None:
+                self.pathIndex = min(self.pathIndex + 1,
+                                     len(self.cncPaths.cncPaths) - 1)
+                print("Selected path: " + str(self.pathIndex))
         elif event.key == 'p':
-            self.pathIndex = self.pathIndex - 1
+            if self.svgFile is not None:
+                self.pathIndex = max(self.pathIndex - 1, -1)
+                print("Selected path: " + str(self.pathIndex))
 
         elif event.key == 'h':
+            # home_machine() sends immediately, so guard against injecting a
+            # homing cycle into a running probe/job.
+            if self.sender.is_busy():
+                print("CNC busy; ignoring 'h'")
+                return
             self.sender.home_machine()
 
         elif event.key == 'z':
@@ -629,15 +705,74 @@ class OverlayGcode:
             #sepcify the X and Y estimated position of the reference block
             #self.refPlateMeasuredLoc = self.sender.zero_on_refPlate(self.refPoints)
             #Just probe z height for now for demo
-            self.sender.run_async('zero_on_refPlate',
-                                  self.sender.zero_on_refPlate, self.refPoints, True)
+            def zero_and_frame():
+                self.sender.zero_on_refPlate(self.refPoints, True)
+                # Work zero now sits on the probed surface: record an identity
+                # frame (workpiece coords == work coords) with Z at PROBE
+                # fidelity, the spine 'Z' mesh probing and send-time warping
+                # ride on (PROBING_DESIGN.md).
+                self.workpieceFrame = WorkpieceFrame(
+                    x=Measured(0.0, Source.PROBE, tolerance=0.002),
+                    y=Measured(0.0, Source.PROBE, tolerance=0.002),
+                    angle=Measured(0.0, Source.PROBE),
+                    z=ZSurface(nominal=Measured(0.0, Source.PROBE, tolerance=0.001)))
+            self.sender.run_async('zero_on_refPlate', zero_and_frame)
             print("refPlateMeasuredLoc: " + str(self.refPlateMeasuredLoc))
             print("camRefCenter: " + str(self.camRefCenter))
 
+        elif event.key == 'Z':
+            # Probe a Z mesh over the current cut region so send-time warping
+            # follows the real surface (constant depth of cut on warped stock)
+            if self.sender.is_busy():
+                print("CNC busy; ignoring 'Z'")
+                return
+            paths = self._workCoordPaths()
+            if not paths:
+                print("No cut paths loaded or drawn; nothing to mesh-probe")
+                return
+            targets = propose_z_targets(paths)
+            if not targets:
+                print("Could not propose any probe targets")
+                return
+            if self.workpieceFrame is None:
+                # Identity frame: workpiece coords == work coords. Meaningful
+                # once 'z' touch-off has set work zero on the stock top.
+                self.workpieceFrame = WorkpieceFrame.eyeballed(0.0, 0.0)
+            print("Probing {}-point Z mesh".format(len(targets)))
+            def run_mesh():
+                self.sender.flushGcodeRespQue()
+                machine = GCodeSenderMachine(self.sender)
+                self.workpieceFrame = get_strategy("z_mesh").refine(
+                    self.workpieceFrame, machine, targets)
+                print("Z mesh samples: " + str(self.workpieceFrame.z.samples))
+            self.sender.run_async('z_mesh', run_mesh)
+
         elif event.key == 'm':
+            # absolute_move() sends immediately, so guard against interleaving
+            # a jog with a running probe/job.
+            if self.sender.is_busy():
+                print("CNC busy; ignoring 'm'")
+                return
+            if x is None:
+                print("Mouse not over the bed view; ignoring 'm'")
+                return
             self.sender.absolute_move(x, y, feed = 300)
 
+        # -- recovery / safety keys: deliberately NOT guarded by is_busy(),
+        # they exist precisely for when an operation is running or stuck.
+        elif event.key == ' ':
+            print("FEED HOLD (!)")
+            self.sender.gerbil.hold()
+        elif event.key == 'r':
+            print("Resume (~)")
+            self.sender.gerbil.resume()
+        elif event.key == 'x':
+            print("Kill alarm ($X)")
+            self.sender.gerbil.killalarm()
+
         elif event.key == 'd':
+            if x is None:
+                return
             # first d turns on preview
             if not self.previewNextDrawnPoint:
                 self.previewNextDrawnPoint = True
@@ -646,6 +781,8 @@ class OverlayGcode:
             self.updateOverlay()
             print(self.drawnPoints)
         elif event.key == 'c':
+          if x is None:
+              return
           if self.startArc == None:
               self.startArc = self.drawnPoints[-1]#Point3D(x, y)
               self.endArc = Point3D(x, y)
@@ -672,7 +809,8 @@ class OverlayGcode:
             offset = Point3D(-self.refPlateMeasuredLoc[0], \
                              -self.refPlateMeasuredLoc[1])
             self.sender.run_async('send_drawnPoints',
-                                  self.sender.send_drawnPoints, offset, self.drawnPoints)
+                                  self.sender.send_drawnPoints, offset,
+                                  self.drawnPoints, self.workpieceFrame)
         elif event.key == 'shift':
             self.shiftHeld = True
             print("shift")
@@ -696,13 +834,14 @@ class OverlayGcode:
       
       if event.x < 260 or self.move == True:
         return
+      # click landed outside the bed axes (figure margin): no position to use
+      if event.xdata is None or self.mouseX is None:
+        return
       pixelsToOrigin = np.array([event.xdata, event.ydata])
       print("event x,y: " + str(pixelsToOrigin))
       print("mouse x,y: " + str([self.mouseX, self.mouseY]))
       xIn, yIn = self._mouse_pos_inches()
       if event.button == MouseButton.RIGHT:
-          #xIn = pixelsToOrigin[0] / self.bedViewSizePixels * self.bedSize.X
-          #yIn = pixelsToOrigin[1] / self.bedViewSizePixels * self.bedSize.Y
           self.rotation = math.atan2(yIn - self.yOffset, xIn - self.xOffset)
           self.rotation = self.rotation - math.pi/2.0
           self.rotation = self.rotation * 180 / math.pi
@@ -711,33 +850,21 @@ class OverlayGcode:
           self.xOffset = xIn
           self.yOffset = yIn
           print("xin, yIn: " + str(xIn) + "," + str(yIn))
-          print(str(pixelsToOrigin[0] / self.bedViewSizePixels * self.bedSize.X) + "," + \
-                str(pixelsToOrigin[1] / self.bedViewSizePixels * self.bedSize.Y))
-          #self.xOffset = pixelsToOrigin[0] / self.bedViewSizePixels * self.bedSize.X
-          #self.yOffset = pixelsToOrigin[1] / self.bedViewSizePixels * self.bedSize.Y
-          # if negative 1 then apply offset to all paths, else just selected path
-          if self.pathIndex == -1:
-              i = 0
-              for path in self.cncPaths.cncPaths:
+          # per-path offsets only exist in svg mode; gcode mode places the
+          # whole file with xOffset/yOffset alone
+          if self.svgFile is not None:
+              # if negative 1 then apply offset to all paths, else just selected path
+              if self.pathIndex == -1:
+                  for i in range(len(self.pathOffsets)):
+                      self.pathOffsets[i] = [xIn, yIn]
+              else:
                   minX = 1000000000
                   minY = 1000000000
-                  for point in path.points3D:
+                  for point in self.cncPaths.cncPaths[self.pathIndex].points3D:
                       minX = min(minX, point.X)
                       minY = min(minY, point.Y)
-
-                  self.pathOffsets[i] = [xIn, yIn]
-                  i = i + 1
-          else:
-              minX = 1000000000
-              minY = 1000000000
-              for point in self.cncPaths.cncPaths[self.pathIndex].points3D:
-                  minX = min(minX, point.X)
-                  minY = min(minY, point.Y)
-              self.pathOffsets[self.pathIndex]  = [xIn - minX, yIn - minY]
+                  self.pathOffsets[self.pathIndex]  = [xIn - minX, yIn - minY]
       self.updateOverlay()
-      self.xBox.set_val(str(self.xOffset))
-      self.yBox.set_val(str(self.yOffset))
-      self.rBox.set_val(str(self.rotation))
 
 def crop_half_vertically(img):
   #cropped_img = image[,int(image.shape[1]/2):int(image.shape[1])]
@@ -901,14 +1028,14 @@ def generate_dest_locations(corners, image):
   return locations, image
 
 def display_4_lines(pixels, frame, flip=False):
-  line1 = tuple(pixels[0][0].astype(np.int))
-  line2   = tuple(pixels[1][0].astype(np.int))
+  line1 = tuple(pixels[0][0].astype(int))
+  line2   = tuple(pixels[1][0].astype(int))
   if flip:
-    line3   = tuple(pixels[3][0].astype(np.int))
-    line4   = tuple(pixels[2][0].astype(np.int))
+    line3   = tuple(pixels[3][0].astype(int))
+    line4   = tuple(pixels[2][0].astype(int))
   else:
-    line3   = tuple(pixels[2][0].astype(np.int))
-    line4   = tuple(pixels[3][0].astype(np.int))
+    line3   = tuple(pixels[2][0].astype(int))
+    line4   = tuple(pixels[3][0].astype(int))
   cv2.line(frame, line1,line2,(0,255,255),3)
   cv2.line(frame, line2,line3,(0,255,255),3)
   cv2.line(frame, line3,line4,(0,255,255),3)
@@ -927,6 +1054,12 @@ class GCodeSender:
         # responsive.  Only one operation is allowed to run at a time.
         self._job_thread = None
         self._job_lock = threading.Lock()
+
+        # Read-only observers (the Qt bridge) receive copies of every Gerbil
+        # event.  They must never consume respQueue, which remains owned by the
+        # blocking machine protocols below.
+        self._event_listeners = []
+        self._last_boot_banner = None
 
         self.gerbil = Gerbil(self.gerbil_callback)
         self.gerbil.setup_logging()
@@ -947,7 +1080,41 @@ class GCodeSender:
 
 
 
+    def add_event_listener(self, listener):
+        """Subscribe to Gerbil events without changing existing queue logic."""
+        if listener not in self._event_listeners:
+            self._event_listeners.append(listener)
+        try:
+            if self._last_boot_banner is not None:
+                listener("on_read", self._last_boot_banner)
+            if self.gerbil.cmode is not None:
+                listener("on_stateupdate", self.gerbil.cmode,
+                         tuple(self.gerbil.cmpos), tuple(self.gerbil.cwpos))
+        except Exception:
+            traceback.print_exc()
+        return listener
+
+    def remove_event_listener(self, listener):
+        try:
+            self._event_listeners.remove(listener)
+        except ValueError:
+            pass
+
     def gerbil_callback(self, eventstring, *data):
+        if eventstring == "on_read" and data and "Grbl " in str(data[0]):
+            self._last_boot_banner = str(data[0])
+        for listener in tuple(self._event_listeners):
+            try:
+                try:
+                    listener_data = deepcopy(data)
+                except Exception:
+                    listener_data = tuple(data)
+                listener(eventstring, *listener_data)
+            except Exception:
+                # A UI listener runs on the serial reader thread.  Never let a
+                # view bug terminate that thread or starve machine protocols.
+                traceback.print_exc()
+
         args = []
         #if eventstring != 'on_vars_change' and \
         #   eventstring != 'on_progress_percent' and \
@@ -973,7 +1140,9 @@ class GCodeSender:
 
     def get_absolute_pos(self):
         self.gerbil.send_immediately("?\n")
-        resp = self.waitOnGCodeComplete(">")
+        # Status reports come back near-instantly; a long silence here means
+        # comms are dead, so fail fast rather than waiting the full default.
+        resp = self.waitOnGCodeComplete(">", timeout = 10.0)
         m = re.match("<(.*?),MPos:(.*?),WPos:(.*?)>", resp)
         mpos_parts = m.group(2).split(",")
         return (float(mpos_parts[0]), float(mpos_parts[1]), float(mpos_parts[2]))
@@ -1151,12 +1320,26 @@ class GCodeSender:
 
         return self.probeSequence(angle, justZ)
 
-    def waitOnGCodeComplete(self, gCode):
+    def waitOnGCodeComplete(self, gCode, timeout = 120.0, holdOnTimeout = True):
       # Block until a controller response containing gCode arrives.  Queue.get()
       # sleeps the calling thread (no busy-wait) and is woken by gerbil_callback.
+      # The deadline bounds the total wait across non-matching responses; on
+      # expiry a feed hold (!) is sent so the machine stops moving instead of
+      # continuing while nothing is watching its responses.
+      deadline = time.monotonic() + timeout
       resp = None
       while resp is None:
-        data = self.respQueue.get()
+        remaining = deadline - time.monotonic()
+        try:
+          data = self.respQueue.get(timeout = max(remaining, 0))
+        except queue.Empty:
+          if holdOnTimeout:
+            self.gerbil.hold()
+          raise TimeoutError(
+              "No '{}' response from controller within {}s{}".format(
+                  gCode, timeout,
+                  "; feed hold (!) sent - resume (~) or reset before continuing"
+                  if holdOnTimeout else ""))
         print("    " + str(data))
         if gCode in str(data):
           resp = data
@@ -1229,7 +1412,7 @@ class GCodeSender:
         fStr = " F" + str(feed)
         self.gerbil.send_immediately("G1" + xStr + yStr + zStr + fStr + "\n")
 
-    def send_svf(self, cncPaths):
+    def send_svf(self, cncPaths, frame = None):
       global materialThickness
       global cutterDiameter
 
@@ -1251,6 +1434,10 @@ class GCodeSender:
       gCodeStrs = []
       for code in cncGcodeGenerator.gCodes:
           gCodeStrs.append(str(code))
+      if frame is not None and frame.z.is_mesh:
+          # Bend cut Z to follow the probed surface (constant depth of cut)
+          gCodeStrs = warp_gcode_lines(gCodeStrs, frame.z.z_at,
+                                       nominal = frame.z.nominal.value)
       # put whole file in buffer then run the job
       self.gerbil.write(gCodeStrs)
       self.gerbil.job_run()
@@ -1263,7 +1450,7 @@ class GCodeSender:
 
       self.absolute_move(z = -0.25)
 
-    def send_drawnPoints(self, offset, points3D):
+    def send_drawnPoints(self, offset, points3D, frame = None):
       global materialThickness
       global cutterDiameter
       points = deepcopy(points3D)
@@ -1289,9 +1476,14 @@ class GCodeSender:
       self.set_inches()
       self.absolute_move(z = -0.25)
       print("SENDING GCODE")
-      for gCode in cncGcodeGenerator.gCodes:
-          print("CODE: " + str(gCode))
-          self.gerbil.stream(str(gCode) + "\n")
+      gCodeStrs = [str(gCode) for gCode in cncGcodeGenerator.gCodes]
+      if frame is not None and frame.z.is_mesh:
+          # Bend cut Z to follow the probed surface (constant depth of cut)
+          gCodeStrs = warp_gcode_lines(gCodeStrs, frame.z.z_at,
+                                       nominal = frame.z.nominal.value)
+      for code in gCodeStrs:
+          print("CODE: " + code)
+          self.gerbil.stream(code + "\n")
 
       self.absolute_move(z = -0.25)
 
@@ -1339,133 +1531,205 @@ class GCodeSender:
         self.gerbil.send_immediately("G69\n")
 
 
+class GCodeSenderMachine:
+    """Adapts GCodeSender to the probing.base.Machine protocol so probe
+    strategies (probing/strategies.py) can drive it without knowing about
+    gerbil. The few lines PROBING_DESIGN.md promised."""
+
+    def __init__(self, sender):
+        self.sender = sender
+
+    def probe(self, x = None, y = None, z = None, feed = 5.9):
+        return self.sender.probe(x, y, z, feed)
+
+    def move(self, x = None, y = None, z = None, feed = 100):
+        self.sender.work_offset_move(x, y, z, feed)
+
+    def position(self):
+        return self.sender.get_absolute_pos()
+
+
 #############################################################################
-# Main
+# Startup pipeline
+#
+# Behavior-preserving extraction of what used to run at module import:
+# capture -> calibrate -> preview -> overlay -> plt.show().  Split into
+# functions so another shell (the planned PySide6 UI) can import this module
+# and call the pieces -- especially calibrate_bed() on a saved image --
+# without opening windows or touching hardware.  Running this file directly
+# behaves exactly as before via main().
 #############################################################################
 
-cap = cv2.VideoCapture(config.vision_settings.camera_device_index, cv2.CAP_DSHOW) # Set Capture Device
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.vision_settings.camera_width)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.vision_settings.camera_height)
+def capture_bed_image(useCamera = False):
+    """Open the capture device and grab a frame of the bed.  Live capture is
+    disabled by default (matching prior behavior): the saved test image is
+    used instead, without touching the camera.  Returns (cap, frame); cap is
+    None in test-image mode."""
+    if not useCamera:
+        return None, cv2.imread('cnc13.jpg')
+    vision = config.vision_settings
+    cap = cv2.VideoCapture(vision.camera_device_index, cv2.CAP_DSHOW) # Set Capture Device
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, vision.camera_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, vision.camera_height)
+    ret, frame = cap.read()
+    if frame is not None:
+        from camera_intrinsics import to_scene_frame
+        frame = to_scene_frame(frame, vision.camera_device_index,
+                               vision.camera_rotation)
+    return cap, frame
 
-#Set Width and Height 
-# cap.set(3,1280)
-# cap.set(4,720)
+
+def calibrate_bed(frame):
+    """Detect the ArUco markers on the vertical rails and compute the
+    bed<->image homographies.  Annotates `frame` with the detections (marker
+    arrows, rail boxes, bed outline) exactly as before -- the annotated frame
+    is what gets warped into the overhead bed view.  No windows, no hardware:
+    callable on any saved image.
+
+    Returns (annotatedFrame, bedPixelToOrigPixelLoc, origPixelToBedPixelLoc,
+    boxes, ids, info).  info carries the detection details for UIs:
+    {"mode", "counts", "plate_found", and "rms" on the machine-tags path}."""
+    #######################################################################
+    # Preferred path: flat AprilTag strips on the rail tops / bed, solved
+    # via PnP with the lens intrinsics.  Falls through to the legacy
+    # vertical-rail ChArUco path when no machine tags are in view.
+    #######################################################################
+    import machine_tags
+    machine_result = machine_tags.try_calibrate(frame, config)
+    if machine_result is not None:
+        ids = machine_result["ids"]
+        info = {"mode": "machine_tags", "counts": machine_result["counts"],
+                "rms": machine_result["rms"], "plate_found": bool(66 in ids)}
+        return (machine_result["frame"], machine_result["bed_to_orig"],
+                machine_result["orig_to_bed"], machine_result["boxes"],
+                ids, info)
+
+    ########################################
+    # Get aruco box information
+    ########################################
+    from camera_intrinsics import detect_aruco
+    boxes, ids = detect_aruco(frame, cv2.aruco.DICT_4X4_100)
+    if ids is None or len(ids) == 0:
+        raise RuntimeError("no ArUco markers visible in the image - "
+                           "check that the camera can see both rail marker strips")
+    # OpenCV 4 returns Nx1 while newer builds may return a flat vector.
+    # The legacy geometry helpers consume the Nx1 shape.
+    ids = np.asarray(ids, dtype=np.int32).reshape(-1, 1)
+
+    pixelLoc = [None]*2
+    locations = [None]*2
+    sideRefLocToOrigPixelLoc = [None]*2
+    pixelsAtBed = [None]*2
+    refBoxes = [leftBoxRef, rightBoxRef]
+    ########################################
+    # Determine vertical homography at left (i=0) and right (i=1) side of CNC machine
+    ########################################
+    for i in range(0, 2):
+      pixelLoc[i],  locations[i],  frame = boxes_to_point_and_location_list(boxes, ids, frame, i == 1)
+      if len(pixelLoc[i]) < 4:
+        raise RuntimeError("%s rail markers not visible (%d of %d detected markers "
+                           "belong to that rail)"
+                           % ("right" if i == 1 else "left", len(pixelLoc[i]) // 4, len(ids)))
+      print(ids)
+      for location in locations[i]:
+        print(location)
+
+      ########################################
+      #Determine forward and backward transformation through homography
+      ########################################
+      sideRefLocToOrigPixelLoc[i], status = cv2.findHomography(np.array(locations[i]), np.array(pixelLoc[i]))
+
+      #############################################################
+      # Draw vertical box on left and right vertical region of CNC
+      #############################################################
+      points = np.array([[refBoxes[i].Z,0],[bedSize.Z,0],[bedSize.Z,bedSize.Y],[refBoxes[i].Z,bedSize.Y]])
+      pixelsAtBed[i] = cv2.perspectiveTransform(points.reshape(-1,1,2), sideRefLocToOrigPixelLoc[i])
+      display_4_lines(pixelsAtBed[i], frame)
+
+    ####################################################################################################
+    # Get forward and backward homography from simulated overhead Pixel location to Orig pixel location
+    # Makes destination image same size as source image.  Reshaped later due to matplot lib speed limitations
+    ####################################################################################################
+    #shape[0] is height.  shape[1] is width
+    #PixelCorners are [height,0], height, width
+    height = float(frame.shape[1])
+    width  = float(frame.shape[0])
+    bedPixelCorners = np.array([[height,0.0],[height,width],[0.0,0.0],[0.0,width]])
+    refPixels = np.array([pixelsAtBed[0][1],pixelsAtBed[0][2],pixelsAtBed[1][1],pixelsAtBed[1][2]])
+    bedPixelToOrigPixelLoc, status    = cv2.findHomography(bedPixelCorners, refPixels)
+    origPixelToBedPixelLoc, status    = cv2.findHomography(refPixels, bedPixelCorners)
+
+    #############################################################
+    # Draw box on CNC bed
+    #############################################################
+    pixels = cv2.perspectiveTransform(bedPixelCorners.reshape(-1,1,2), bedPixelToOrigPixelLoc)
+    display_4_lines(pixels, frame, flip=True)
+
+    info = {"mode": "legacy",
+            "counts": {"Left rail": len(pixelLoc[0]) // 4,
+                       "Right rail": len(pixelLoc[1]) // 4},
+            "plate_found": bool(66 in ids)}
+    return frame, bedPixelToOrigPixelLoc, origPixelToBedPixelLoc, boxes, ids, info
 
 
-# Capture frame-by-frame
-#ret, frame = cap.read()
-file = 'cnc13.jpg'
-frame = cv2.imread(file)
-img = cv2.imread(file)
+def warp_to_overhead(frame, origPixelToBedPixelLoc):
+    """Warp the (annotated) camera frame to the square overhead bed view that
+    the overlay UI displays."""
+    cv2Overhead = cv2.warpPerspective(frame, origPixelToBedPixelLoc, (frame.shape[1], frame.shape[0]))
+    return cv2.resize(cv2Overhead, (bedViewSizePixels, bedViewSizePixels))
 
-#######################################################################
-# Get grayscale image above threshold
-#######################################################################
-gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-########################################
-# Get aruco box information
-########################################
-boxes, ids, rejectedImgPoints = cv2.aruco.detectMarkers(gray, cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_100))
-#print("boxes")
-#print(boxes)
-#print("ids")
-#print(ids)
+def locate_touch_plate(frame, boxes, ids, origPixelToBedPixelLoc, markerId = 66):
+    """Find the probe touch plate marker in the image and return its corner
+    pixel locations in the overhead bed view, ready for
+    OverlayGcode.set_ref_loc()."""
+    refPixelLoc    = get_id_loc(frame, boxes, ids, markerId)
+    if refPixelLoc is None:
+        print("Touch plate marker %d not visible" % markerId)
+        return []
+    refPhysicalLoc = cv2.perspectiveTransform(refPixelLoc.reshape(-1,1,2), origPixelToBedPixelLoc)
+    touchPlateLocPercent = refPhysicalLoc / [frame.shape[1], frame.shape[0]]
+    touchPlateLoc = []
+    touchPlatePixels = []
+    for a in touchPlateLocPercent:
+        touchPlateLoc.append(a[0] * [bedSize.X, bedSize.Y])
+        touchPlatePixels.append(a[0] * [bedViewSizePixels, bedViewSizePixels] )
+    print("Touch Plate Loc: " + str(touchPlateLoc))
+    return touchPlatePixels
 
-pixelLoc = [None]*2
-locations = [None]*2
-sideRefLocToOrigPixelLoc = [None]*2
-pixelsAtBed = [None]*2
-refBoxes = [leftBoxRef, rightBoxRef]
-########################################
-# Determine vertical homography at left (i=0) and right (i=1) side of CNC machine
-########################################
-for i in range(0, 2):
-  pixelLoc[i],  locations[i],  frame = boxes_to_point_and_location_list(boxes, ids, frame, i == 1)
-  print(ids)
-  for location in locations[i]:
-    print(location)
 
-  ########################################
-  #Determine forward and backward transformation through homography
-  ########################################
-  sideRefLocToOrigPixelLoc[i], status = cv2.findHomography(np.array(locations[i]), np.array(pixelLoc[i]))
+def main(svgFile = 'puzzles2.svg', gCodeFile = None, enableSender = False,
+         useCamera = False, showCalibration = True):
+    """Run the matplotlib application: capture, calibrate, show the
+    calibration preview (blocks until a key is pressed in the OpenCV window),
+    then the interactive overlay until its window closes."""
+    cap, frame = capture_bed_image(useCamera)
+    frame, bedPixelToOrigPixelLoc, origPixelToBedPixelLoc, boxes, ids, _info = calibrate_bed(frame)
 
-  #############################################################
-  # Draw vertical box on left and right vertical region of CNC
-  #############################################################
-  points = np.array([[refBoxes[i].Z,0],[bedSize.Z,0],[bedSize.Z,bedSize.Y],[refBoxes[i].Z,bedSize.Y]])
-  #points = np.array([[refBoxes[i].Z,refBoxes[i].Y + 15.658499997],[bedSize.Z,refBoxes[i].Y + 15.658499997],[bedSize.Z,bedSize.Y],[refBoxes[i].Z,refBoxes[i].Y]])
-  pixelsAtBed[i] = cv2.perspectiveTransform(points.reshape(-1,1,2), sideRefLocToOrigPixelLoc[i])
-  display_4_lines(pixelsAtBed[i], frame)
+    if showCalibration:
+        #############################################################
+        # Display bed on original image
+        #############################################################
+        preview = cv2.resize(frame, (1280, 700))
+        cv2.imshow('image', preview)
+        cv2.waitKey()
 
-####################################################################################################
-# Get forward and backward homography from simulated overhead Pixel location to Orig pixel location
-# Makes destination image same size as source image.  Reshaped later due to matplot lib speed limitations
-####################################################################################################
-#shape[0] is height.  shape[1] is width
-#PixelCorners are [height,0], height, width
-height = float(frame.shape[1])
-width  = float(frame.shape[0])
-bedPixelCorners = np.array([[height,0.0],[height,width],[0.0,0.0],[0.0,width]])
-refPixels = np.array([pixelsAtBed[0][1],pixelsAtBed[0][2],pixelsAtBed[1][1],pixelsAtBed[1][2]])
-bedPixelToOrigPixelLoc, status    = cv2.findHomography(bedPixelCorners, refPixels)
-origPixelToBedPixelLoc, status    = cv2.findHomography(refPixels, bedPixelCorners)
-  
-#############################################################
-# Draw box on CNC bed
-#############################################################
-pixels = cv2.perspectiveTransform(bedPixelCorners.reshape(-1,1,2), bedPixelToOrigPixelLoc)
-display_4_lines(pixels, frame, flip=True)
+    ######################################################################
+    # Warp perspective to perpendicular to bed view, create overlay class
+    ######################################################################
+    overlay = OverlayGcode(warp_to_overhead(frame, origPixelToBedPixelLoc),
+                           svgFile = svgFile, gCodeFile = gCodeFile,
+                           enableSender = enableSender)
+    overlay.set_ref_loc(locate_touch_plate(frame, boxes, ids, origPixelToBedPixelLoc))
 
-#############################################################
-# Display bed on original image
-#############################################################
-gray = cv2.resize(frame, (1280, 700))
-cv2.imshow('image',gray)
-cv2.waitKey()
-  
-######################################################################
-# Warp perspective to perpendicular to bed view, create overlay calss
-######################################################################
-gCodeFile = 'test.nc'
-cv2Overhead = cv2.warpPerspective(frame, origPixelToBedPixelLoc, (frame.shape[1], frame.shape[0]))
-cv2Overhead = cv2.resize(cv2Overhead, (bedViewSizePixels, bedViewSizePixels))
-GCodeOverlay = OverlayGcode(cv2Overhead, \
-                            svgFile = 'puzzles2.svg', \
-                            #gCodeFile = gCodeFile, \
-                            enableSender = False)
+    plt.show()
 
-########################################
-# Detect box location in overhead image
-########################################
-#Change overhead image to gray for box detection
-refPixelLoc    = get_id_loc(frame, boxes, ids, 66)
-refPhysicalLoc = cv2.perspectiveTransform(refPixelLoc.reshape(-1,1,2), origPixelToBedPixelLoc)
-touchPlateLocPercent = refPhysicalLoc / [frame.shape[1], frame.shape[0]]
-touchPlateLoc = []
-touchPlatePixels = []
-for a in touchPlateLocPercent:
-    touchPlateLoc.append(a[0] * [bedSize.X, bedSize.Y])
-    touchPlatePixels.append(a[0] * [bedViewSizePixels, bedViewSizePixels] )
-print("")
-print("")
-print("")
-print("")
-print("")
-print("")
-print("")
-print("")
-print("")
-print("Touch Plate Loc: " + str(touchPlateLoc))
-GCodeOverlay.set_ref_loc(touchPlatePixels)
+    # When everything done, release the capture
+    if cap is not None:
+        cap.release()
+    cv2.destroyAllWindows()
+    return overlay
 
-######################################################################
-# Create a G Code sender now that overlay is created
-######################################################################
 
-plt.show()
-
-# When everything done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    main()

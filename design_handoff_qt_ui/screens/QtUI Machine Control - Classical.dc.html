@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/classical-0afd9443-6143-4445-99c4-b7b9b0181587/styles.css">
+<script src="_ds/classical-0afd9443-6143-4445-99c4-b7b9b0181587/_ds_bundle.js"></script>
+<style>
+  body{margin:0;background:#d8d5cf;font-family:var(--font-body);
+    display:flex;justify-content:center;padding:26px;min-height:100vh}
+  .num{font-family:var(--font-heading);font-feature-settings:"tnum";letter-spacing:.01em}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-feature-settings:"tnum"}
+  .mi{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .tbtn{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13.5px;color:var(--color-text);background:transparent;border:1px solid var(--color-divider);padding:7px 12px;border-radius:var(--radius-md);white-space:nowrap}
+  .tbtn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent)}
+  .tbtn.pri{color:var(--color-accent);border-color:var(--color-accent)}
+  .tbtn.pri:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
+  .wtab{display:inline-flex;align-items:center;gap:8px;height:100%;font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--color-neutral-600);text-decoration:none;border-bottom:2px solid transparent}
+  .wtab:hover{color:var(--color-text);border-bottom-color:var(--color-neutral-400)}
+  .wtab[aria-current]{color:var(--color-text);border-bottom-color:var(--color-accent)}
+  .wtab[aria-current]:hover{border-bottom-color:var(--color-accent)}
+  @keyframes routerPulse{0%{transform:translate(-50%,-50%) scale(.55);opacity:.85}70%{opacity:0}100%{transform:translate(-50%,-50%) scale(2.3);opacity:0}}
+  @keyframes routerBlink{0%,100%{opacity:1}50%{opacity:.25}}
+  .router{position:absolute;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
+  .router-pulse{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border:2px solid var(--color-accent);border-radius:50%;animation:routerPulse 1.9s ease-out infinite}
+  .router-mark{position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
+  .router-tag{position:absolute;left:28px;top:-14px;white-space:nowrap;display:flex;align-items:center;gap:6px;background:var(--color-bg);border:1px solid var(--color-accent);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:11px;padding:2px 8px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm)}
+  .router-live{width:7px;height:7px;flex:none;border-radius:50%;background:var(--color-accent);animation:routerBlink 1.4s ease-in-out infinite}
+  .tbtn.warn{color:#7a2018;border-color:color-mix(in srgb,#a3352a 50%,transparent)}
+  .tbtn.warn:hover{background:color-mix(in srgb,#a3352a 8%,transparent)}
+  .jbtn{display:flex;align-items:center;justify-content:center;border:1px solid var(--color-divider);border-radius:var(--radius-md);background:transparent;color:var(--color-text);cursor:pointer}
+  .jbtn:hover{background:color-mix(in srgb,var(--color-accent) 10%,transparent);border-color:var(--color-accent);color:var(--color-accent)}
+  .jbtn .mi{width:20px;height:20px}
+  .zerob{font-family:var(--font-heading);font-weight:600;font-size:11px;border:1px solid var(--color-divider);border-radius:var(--radius-sm);padding:3px 8px;cursor:pointer;color:var(--color-accent);background:transparent}
+  .zerob:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
+  .step{width:24px;height:22px;border:1px solid var(--color-divider);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px}
+  .step:hover{border-color:var(--color-accent);color:var(--color-accent)}
+</style>
+</helmet>
+
+<div style="width:1300px;height:824px;display:flex;flex-direction:column;background:var(--color-bg);border:1px solid var(--color-neutral-400);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden">
+
+  <!-- title bar -->
+  <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="width:11px;height:11px;border-radius:50%;background:var(--color-neutral-400)"></span>
+    <span style="margin-left:12px;font-family:var(--font-heading);font-weight:600;font-size:16px">realWorldGcodeSender</span>
+    <span style="font-size:13px;color:var(--color-neutral-600);font-style:italic">— Workspace · Machine tab</span>
+    <span style="margin-left:auto;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">grbl 1.1h · COM3</span>
+  </div>
+
+  <!-- menu bar -->
+  <div style="display:flex;gap:26px;height:32px;align-items:center;padding:0 18px;border-bottom:1px solid var(--color-divider);font-size:13.5px;color:var(--color-neutral-800)">
+    <span>File</span><span>Edit</span><span>View</span><span>Machine</span><span>Probe</span><span>Help</span>
+  </div>
+
+  <!-- workspace tabs -->
+  <div style="display:flex;gap:28px;align-items:stretch;height:40px;padding:0 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg)">
+    <a class="wtab" href="QtUI%20Calibration%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/></svg>Calibration</a>
+    <a class="wtab" href="QtUI%20Main%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg>Workspace</a>
+    <a class="wtab" aria-current="page" href="QtUI%20Machine%20Control%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>Machine</a>
+    <a class="wtab" href="QtUI%20Settings%20-%20Classical.dc.html"><svg class="mi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Settings</a>
+  </div>
+
+  <!-- toolbar -->
+  <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-neutral-100)">
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M4 20h16a1 1 0 0 0 1-1V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L8.6 3.9A2 2 0 0 0 6.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>Open</button>
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/></svg>Recapture</button>
+    <span style="width:1px;height:24px;background:var(--color-divider);margin:0 3px"></span>
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>Home ($H)</button>
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>Unlock ($X)</button>
+    <span style="width:1px;height:24px;background:var(--color-divider);margin:0 3px"></span>
+    <button class="tbtn pri"><svg class="mi" viewBox="0 0 24 24"><path d="m6 3 14 9-14 9Z"/></svg>Send job</button>
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Hold</button>
+    <button class="tbtn"><svg class="mi" viewBox="0 0 24 24"><path d="m6 3 14 9-14 9Z"/></svg>Resume</button>
+    <button class="tbtn warn"><svg class="mi" viewBox="0 0 24 24" style="stroke:#a3352a"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>Kill alarm</button>
+  </div>
+
+  <!-- body -->
+  <div style="flex:1;display:flex;min-height:0">
+
+    <!-- LEFT: coordinates -->
+    <aside style="width:296px;flex:none;border-right:1px solid var(--color-divider);background:var(--color-neutral-100);padding:18px;display:flex;flex-direction:column;gap:18px;overflow:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h6 style="margin:0">Coordinates</h6>
+        <div class="seg" style="font-size:12px"><label class="seg-opt" style="padding:4px 10px;color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)">in</label><label class="seg-opt" style="padding:4px 10px">mm</label></div>
+      </div>
+      <section style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Work · WCS</div>
+        <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--color-divider)"><span style="font-size:13px;letter-spacing:.1em;color:var(--color-neutral-600);width:16px">X</span><span class="num" style="font-size:27px;color:var(--color-accent-700);flex:1">4.812</span><span class="zerob">X0</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--color-divider)"><span style="font-size:13px;letter-spacing:.1em;color:var(--color-neutral-600);width:16px">Y</span><span class="num" style="font-size:27px;color:var(--color-accent-700);flex:1">7.335</span><span class="zerob">Y0</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px"><span style="font-size:13px;letter-spacing:.1em;color:var(--color-neutral-600);width:16px">Z</span><span class="num" style="font-size:27px;color:var(--color-accent-700);flex:1">0.000</span><span class="zerob">Z0</span></div>
+        </div>
+      </section>
+      <section style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Machine · MCS</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:7px 9px"><div style="font-size:11px;color:var(--color-neutral-600)">X</div><div class="num" style="font-size:16px">−12.19</div></div>
+          <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:7px 9px"><div style="font-size:11px;color:var(--color-neutral-600)">Y</div><div class="num" style="font-size:16px">−8.67</div></div>
+          <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:7px 9px"><div style="font-size:11px;color:var(--color-neutral-600)">Z</div><div class="num" style="font-size:16px">−0.20</div></div>
+        </div>
+      </section>
+      <section style="display:flex;flex-direction:column;gap:9px">
+        <h6 style="margin:0;padding-bottom:6px;border-bottom:1px solid var(--color-text)">Go to</h6>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <button class="tbtn" style="justify-content:center">XY zero</button>
+          <button class="tbtn" style="justify-content:center">Z safe</button>
+          <button class="tbtn" style="justify-content:center">Work zero</button>
+          <button class="tbtn" style="justify-content:center">Machine 0</button>
+        </div>
+        <p style="margin:2px 0 0;font-size:11.5px;font-style:italic;color:var(--color-neutral-600)">Press <span class="mono">m</span> to move to the last clicked bed point.</p>
+      </section>
+      <section style="display:flex;flex-direction:column;gap:8px">
+        <h6 style="margin:0;padding-bottom:6px;border-bottom:1px solid var(--color-text)">Spindle</h6>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="seg"><label class="seg-opt" style="color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)">On</label><label class="seg-opt">Off</label></div>
+          <div class="field" style="flex:1"><div class="input num" style="text-align:right">18,000 rpm</div></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- CENTER: bed view stays in sight while jogging -->
+    <main style="flex:1;min-width:0;background:var(--color-neutral-200);display:flex;flex-direction:column">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:12px 20px 0">
+        <div class="card-kicker" style="display:flex;align-items:center;gap:7px"><svg class="mi" viewBox="0 0 24 24" style="width:13px;height:13px;stroke:var(--color-accent)"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4Z"/></svg>Still capture · watch the head while you jog</div>
+        <div style="font-size:12px;color:var(--color-neutral-700)">Head <span class="num" style="color:var(--color-accent-800)">4.81, 7.33 in</span></div>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px 20px 20px">
+        <figure class="plate" style="height:100%;margin:0;position:relative;box-shadow:var(--shadow-md);line-height:0">
+          <img src="ref/cutPath.png" alt="CNC bed" style="height:100%;width:auto;object-fit:contain;display:block">
+          <div class="router" style="left:50%;top:30%">
+            <span class="router-pulse"></span>
+            <svg class="router-mark" viewBox="0 0 44 44"><circle cx="22" cy="22" r="6" fill="none" stroke="#7d5411" stroke-width="2"/><path d="M22 3v10M22 31v10M3 22h10M31 22h10" stroke="#7d5411" stroke-width="2" stroke-linecap="round"/><circle cx="22" cy="22" r="1.8" fill="#7d5411"/></svg>
+            <span class="router-tag"><span class="router-live"></span>head · <span class="num">4.81, 7.33</span></span>
+          </div>
+        </figure>
+      </div>
+    </main>
+
+    <!-- RIGHT: jog + overrides + recovery -->
+    <aside style="width:360px;flex:none;border-left:1px solid var(--color-divider);background:var(--color-neutral-100);padding:18px;display:flex;flex-direction:column;gap:16px;overflow:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h6 style="margin:0">Jog</h6>
+        <span class="tag tag-neutral" style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent)"></span>IDLE</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">Step</span>
+        <div class="seg" style="flex:1;font-size:12px">
+          <label class="seg-opt" style="flex:1;justify-content:center;padding:5px 0">.001</label>
+          <label class="seg-opt" style="flex:1;justify-content:center;padding:5px 0">.01</label>
+          <label class="seg-opt" style="flex:1;justify-content:center;padding:5px 0;color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)">.1</label>
+          <label class="seg-opt" style="flex:1;justify-content:center;padding:5px 0">1.0</label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:16px;justify-content:center">
+        <div style="display:grid;grid-template-columns:repeat(3,58px);grid-auto-rows:58px;gap:8px">
+          <button class="jbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M19 19 5 5M5 5h9M5 5v9"/></svg></button>
+          <button class="jbtn"><svg class="mi" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 5v14"/></svg></button>
+          <button class="jbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M5 19 19 5M10 5h9v9"/></svg></button>
+          <button class="jbtn"><svg class="mi" viewBox="0 0 24 24"><path d="m12 5-7 7 7 7M5 12h14"/></svg></button>
+          <button class="jbtn" style="flex-direction:column;gap:1px;font-family:var(--font-heading);font-weight:600;font-size:9px;color:var(--color-neutral-600)"><svg class="mi" viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--color-accent)"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>XY0</button>
+          <button class="jbtn"><svg class="mi" viewBox="0 0 24 24"><path d="m12 19 7-7-7-7M19 12H5"/></svg></button>
+          <button class="jbtn"><svg class="mi" viewBox="0 0 24 24"><path d="M19 5 5 19M5 10v9h9"/></svg></button>
+          <button class="jbtn"><svg class="mi" viewBox="0 0 24 24"><path d="m5 12 7 7 7-7M12 19V5"/></svg></button>
+          <button class="jbtn"><svg class="mi" viewBox="0 0 24 24"><path d="m5 5 14 14M19 10v9h-9"/></svg></button>
+        </div>
+        <div style="width:1px;background:var(--color-divider)"></div>
+        <div style="display:flex;flex-direction:column;gap:8px;width:64px">
+          <button class="jbtn" style="flex:1;flex-direction:column;gap:2px"><svg class="mi" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg><span style="font-family:var(--font-heading);font-weight:600;font-size:11px">Z+</span></button>
+          <button class="jbtn" style="flex:1;flex-direction:column;gap:2px"><span style="font-family:var(--font-heading);font-weight:600;font-size:11px">Z−</span><svg class="mi" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">Feed</span>
+        <span style="flex:1;height:6px;border:1px solid var(--color-neutral-400);border-radius:6px;display:inline-block;position:relative"><span style="display:block;height:100%;width:45%;background:var(--color-accent);border-radius:6px"></span><span style="position:absolute;left:45%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--color-bg);border:1.5px solid var(--color-accent)"></span></span>
+        <span class="num" style="font-size:13px;color:var(--color-accent-800);width:66px;text-align:right">1,800 ipm</span>
+      </div>
+
+      <section style="display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--color-divider);padding-top:14px">
+        <h6 style="margin:0">Overrides</h6>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px">Feed</span><div style="display:flex;align-items:center;gap:7px"><span class="step">−</span><span class="num" style="width:44px;text-align:center;color:var(--color-accent-800)">100%</span><span class="step">+</span></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px">Rapid</span><div style="display:flex;align-items:center;gap:7px"><span class="step">−</span><span class="num" style="width:44px;text-align:center;color:var(--color-accent-800)">100%</span><span class="step">+</span></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px">Spindle</span><div style="display:flex;align-items:center;gap:7px"><span class="step">−</span><span class="num" style="width:44px;text-align:center;color:var(--color-accent-800)">100%</span><span class="step">+</span></div></div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:14px">
+        <h6 style="margin:0">Recovery</h6>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <button class="tbtn" style="justify-content:center">⏸ Feed hold</button>
+          <button class="tbtn" style="justify-content:center">▶ Resume</button>
+        </div>
+        <button class="tbtn warn" style="justify-content:center">⚠ Kill alarm · $X</button>
+      </section>
+    </aside>
+  </div>
+
+  <!-- console -->
+  <div style="height:82px;flex:none;border-top:1px solid var(--color-divider);background:var(--color-neutral-100);padding:9px 18px;display:flex;flex-direction:column;gap:2px;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
+      <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">Console</span>
+      <span style="font-size:11px;color:var(--color-neutral-500)">MPos ↔ WPos</span>
+    </div>
+    <div class="mono" style="font-size:12.5px;line-height:1.5;color:var(--color-neutral-700)">
+      <div><span style="color:var(--color-accent)">&gt;</span> $J=G91 G20 X0.1 F1800</div>
+      <div style="color:var(--color-neutral-800)">&lt;Idle|WPos:4.812,7.335,0.000|FS:0,0&gt;</div>
+    </div>
+  </div>
+
+  <!-- status bar -->
+  <div style="display:flex;align-items:center;gap:20px;height:34px;flex:none;padding:0 18px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-700)">
+    <span style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 22%,transparent)"></span>Connected · COM3 · 115200</span>
+    <span>inches</span>
+    <span>Jog step <span class="num" style="color:var(--color-accent-800)">0.100 in</span></span>
+    <span style="margin-left:auto;font-family:var(--font-heading);font-weight:600;letter-spacing:.05em;color:var(--color-neutral-800)">IDLE</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -84,14 +84,14 @@ class ChArucoDetector:
             gray = image.copy()
         
         # Detect ArUco markers
-        try:
-            # Try new OpenCV 4.7+ API
+        if hasattr(cv2.aruco, "detectMarkers"):
             boxes, ids, rejected = cv2.aruco.detectMarkers(
                 gray, self.aruco_dict, parameters=self.detector_params
             )
-        except:
-            # Fall back to older API
-            boxes, ids, rejected = cv2.aruco.detectMarkers(gray, self.aruco_dict)
+        else:
+            # OpenCV 5 exposes detection through an ArucoDetector instance.
+            detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.detector_params)
+            boxes, ids, rejected = detector.detectMarkers(gray)
         
         markers = []
         left_markers = []

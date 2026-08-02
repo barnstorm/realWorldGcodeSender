@@ -1,0 +1,85 @@
+/* Classical design system -> Qt Style Sheet.
+   Derived verbatim from classical-tokens.css. Colors applied as stroke/outline,
+   buttons unfilled, hairline dividers, Cormorant Garamond over Lora.
+   Install the fonts (Cormorant Garamond, Lora) for the intended look; Qt falls
+   back to the default serif otherwise. */
+
+QWidget            { background: #f3f2f2; color: #201f1d; font-family: "Lora"; font-size: 14px; }
+QMainWindow, QDialog { background: #f3f2f2; }
+
+/* --- menu bar --- */
+QMenuBar           { background: #f3f2f2; border-bottom: 1px solid #d7d3d3; }
+QMenuBar::item     { padding: 6px 12px; color: #444141; background: transparent; }
+QMenuBar::item:selected { color: #b68235; }
+QMenu              { background: #f8f4f4; border: 1px solid #d7d3d3; }
+QMenu::item:selected { background: rgba(182,130,53,0.12); color: #7d5411; }
+
+/* --- toolbars (one per view) --- */
+QToolBar           { background: #f8f4f4; border: none; border-bottom: 1px solid #d7d3d3;
+                     spacing: 8px; padding: 8px 12px; }
+QToolBar::separator{ background: #d7d3d3; width: 1px; margin: 0 4px; }
+
+/* --- underline tabs --- */
+QTabWidget::pane   { border: none; }
+QTabBar            { background: #f3f2f2; qproperty-drawBase: 0; }
+QTabBar::tab       { background: transparent; color: #7d7979;
+                     font-family: "Cormorant Garamond"; font-weight: 600; font-size: 15px;
+                     padding: 10px 4px; margin-right: 26px; border: 0;
+                     border-bottom: 2px solid transparent; }
+QTabBar::tab:hover { color: #201f1d; border-bottom: 2px solid #bab6b6; }
+QTabBar::tab:selected { color: #201f1d; border-bottom: 2px solid #b68235; }
+
+/* --- status bar --- */
+QStatusBar         { background: #eae9e9; border-top: 1px solid #d7d3d3; color: #605d5d; }
+QStatusBar::item   { border: none; }
+
+/* --- docks / panels --- */
+QFrame#dock        { background: #f8f4f4; border: none; }
+QFrame#panel       { background: transparent; border: 1px solid #d7d3d3; border-radius: 4px; }
+QFrame#viewToolbar, QWidget#jobBar { background: #f8f4f4; border-bottom: 1px solid #d7d3d3; }
+QFrame[hline="true"] { border: none; border-top: 1px solid #d7d3d3; max-height: 1px; }
+
+/* --- labels by role --- */
+QLabel[role="brand"]  { font-family: "Cormorant Garamond"; font-weight: 600; font-size: 16px; }
+QLabel[role="h6"]     { font-family: "Cormorant Garamond"; font-weight: 600; font-size: 13px;
+                        letter-spacing: 1px; color: #201f1d; }
+QLabel[role="kicker"] { font-size: 10px; letter-spacing: 1px; color: #b68235; }
+QLabel[role="muted"]  { color: #605d5d; font-size: 12px; }
+QLabel[role="dro"]    { font-family: "Cormorant Garamond"; font-size: 28px; color: #7d5411; }
+QLabel[role="state"]  { font-family: "Cormorant Garamond"; font-weight: 600; letter-spacing: 1px;
+                        color: #444141; }
+QLabel[role="tag"] { padding: 3px 6px; border-radius: 2px; font-size: 10px; }
+QLabel[role="tag"][variant="accent"] { background: #fff3e4; color: #5a3b0a; border: 1px solid #b68235; }
+QLabel[role="tag"][variant="outline"] { background: transparent; color: #605d5d; border: 1px solid #7d7979; }
+QLabel[role="tag"][variant="neutral"] { background: #eae9e9; color: #605d5d; border: 1px solid #bab6b6; }
+QLabel[role="tag"][variant="alert"] { background: rgba(163,53,42,0.08); color: #7a2018; border: 1px solid #a3352a; }
+QLabel#alertBanner { color: #7a2018; border: 1px solid #a3352a; padding: 9px 18px; background: rgba(163,53,42,0.08); }
+
+/* --- buttons: outlined, never filled --- */
+QPushButton        { background: transparent; color: #201f1d;
+                     font-family: "Cormorant Garamond"; font-weight: 600; font-size: 14px;
+                     border: 1px solid #d7d3d3; border-radius: 4px; padding: 7px 12px; }
+QPushButton:hover  { background: rgba(32,31,29,0.06); }
+QPushButton:pressed{ background: rgba(32,31,29,0.12); }
+QPushButton[variant="primary"]        { color: #b68235; border-color: #b68235; }
+QPushButton[variant="primary"]:hover  { background: rgba(182,130,53,0.12); }
+QPushButton[variant="alert"]          { color: #7a2018; border-color: rgba(163,53,42,0.5); }
+QPushButton[variant="alert"]:hover    { background: rgba(163,53,42,0.08); }
+QPushButton:disabled { color: rgba(32,31,29,0.45); border-color: rgba(32,31,29,0.1); }
+
+/* --- inputs --- */
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+    background: transparent; border: 1px solid #d7d3d3; border-radius: 4px;
+    padding: 6px 10px; min-height: 18px; selection-background-color: rgba(182,130,53,0.3);
+}
+QLineEdit:focus, QComboBox:focus { border-color: #b68235; }
+QCheckBox          { spacing: 8px; color: #201f1d; }
+
+/* --- bed view --- */
+QGraphicsView      { border: none; background: #eae7e7; }
+QPlainTextEdit#console { background: #f8f4f4; color: #605d5d; border: none; border-top: 1px solid #d7d3d3; }
+
+/* --- progress --- */
+QProgressBar       { border: 1px solid #bab6b6; border-radius: 6px; background: transparent;
+                     max-height: 8px; text-align: center; }
+QProgressBar::chunk{ background: #b68235; border-radius: 5px; }
